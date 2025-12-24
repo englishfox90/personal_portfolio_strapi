@@ -1,0 +1,61 @@
+{
+  "collectionName": "components_nina_data_sync_weather_objects",
+  "info": {
+    "displayName": "Weather Object"
+  },
+  "options": {},
+  "attributes": {
+    "connected": {
+      "type": "boolean"
+    },
+    "name": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "datetime"
+    },
+    "temperature": {
+      "type": "decimal"
+    },
+    "humidity": {
+      "type": "decimal"
+    },
+    "dewPoint": {
+      "type": "decimal"
+    },
+    "pressure": {
+      "type": "decimal"
+    },
+    "cloudCover": {
+      "type": "decimal"
+    },
+    "windSpeed": {
+      "type": "decimal"
+    },
+    "windDirection": {
+      "type": "decimal"
+    },
+    "windGust": {
+      "type": "decimal"
+    },
+    "rainRate": {
+      "type": "decimal"
+    },
+    "skyBrightness": {
+      "type": "decimal"
+    },
+    "skyQuality": {
+      "type": "decimal"
+    },
+    "skyTemperature": {
+      "type": "decimal"
+    },
+    "starFWHM": {
+      "type": "decimal"
+    },
+    "averagePeriod": {
+      "type": "decimal"
+    }
+  },
+  "config": {}
+}

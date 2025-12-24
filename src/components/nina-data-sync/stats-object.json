@@ -1,0 +1,34 @@
+{
+  "collectionName": "components_nina_data_sync_stats_objects",
+  "info": {
+    "displayName": "Stats Object"
+  },
+  "options": {},
+  "attributes": {
+    "hfr": {
+      "type": "decimal"
+    },
+    "hfrStDev": {
+      "type": "decimal"
+    },
+    "stars": {
+      "type": "decimal"
+    },
+    "mean": {
+      "type": "decimal"
+    },
+    "median": {
+      "type": "decimal"
+    },
+    "stdDev": {
+      "type": "decimal"
+    },
+    "min": {
+      "type": "decimal"
+    },
+    "max": {
+      "type": "decimal"
+    }
+  },
+  "config": {}
+}

@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_nina_data_sync_target_objects",
+  "info": {
+    "displayName": "Target Object"
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "ra": {
+      "type": "string"
+    },
+    "dec": {
+      "type": "string"
+    }
+  },
+  "config": {}
+}

@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_nina_data_sync_meta_objects",
+  "info": {
+    "displayName": "Meta Object"
+  },
+  "options": {},
+  "attributes": {
+    "lastUpdated": {
+      "type": "datetime"
+    },
+    "ninaConnected": {
+      "type": "boolean"
+    }
+  },
+  "config": {}
+}

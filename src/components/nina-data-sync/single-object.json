@@ -1,0 +1,27 @@
+{
+  "collectionName": "components_nina_data_sync_single_objects",
+  "info": {
+    "displayName": "Single Object"
+  },
+  "options": {},
+  "attributes": {
+    "capturedAt": {
+      "type": "datetime"
+    },
+    "filter": {
+      "type": "string"
+    },
+    "exposureSeconds": {
+      "type": "integer"
+    },
+    "filename": {
+      "type": "string"
+    },
+    "stats": {
+      "type": "component",
+      "component": "nina-data-sync.stats-object",
+      "repeatable": false
+    }
+  },
+  "config": {}
+}

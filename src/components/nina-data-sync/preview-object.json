@@ -1,0 +1,18 @@
+{
+  "collectionName": "components_nina_data_sync_preview_objects",
+  "info": {
+    "displayName": "Preview Object"
+  },
+  "options": {},
+  "attributes": {
+    "type": {
+      "type": "string"
+    },
+    "stack": {
+      "type": "component",
+      "component": "nina-data-sync.stack-object",
+      "repeatable": false
+    }
+  },
+  "config": {}
+}

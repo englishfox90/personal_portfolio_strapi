@@ -1,0 +1,55 @@
+{
+  "kind": "singleType",
+  "collectionName": "currently_imagings",
+  "info": {
+    "singularName": "currently-imaging",
+    "pluralName": "currently-imagings",
+    "displayName": "Currently Imaging"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "metaData": {
+      "type": "component",
+      "component": "nina-data-sync.meta-object",
+      "repeatable": false
+    },
+    "environment": {
+      "type": "component",
+      "component": "nina-data-sync.environment-object",
+      "repeatable": false
+    },
+    "equipment": {
+      "type": "component",
+      "component": "nina-data-sync.equipment-object",
+      "repeatable": false
+    },
+    "activityLog": {
+      "type": "component",
+      "component": "nina-data-sync.activity-log-item-object",
+      "repeatable": true
+    },
+    "target": {
+      "type": "component",
+      "component": "nina-data-sync.target-object",
+      "repeatable": false
+    },
+    "project": {
+      "type": "component",
+      "component": "nina-data-sync.project-object",
+      "repeatable": false
+    },
+    "acquisition": {
+      "type": "component",
+      "component": "nina-data-sync.acquisition-object",
+      "repeatable": false
+    },
+    "preview": {
+      "type": "component",
+      "component": "nina-data-sync.preview-object",
+      "repeatable": false
+    }
+  }
+}

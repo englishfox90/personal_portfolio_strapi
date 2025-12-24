@@ -1,0 +1,27 @@
+{
+  "collectionName": "components_nina_data_sync_stack_objects",
+  "info": {
+    "displayName": "Stack Object"
+  },
+  "options": {},
+  "attributes": {
+    "frameCount": {
+      "type": "integer"
+    },
+    "filter": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string"
+    },
+    "updatedAtTime": {
+      "type": "datetime"
+    },
+    "single": {
+      "type": "component",
+      "component": "nina-data-sync.single-object",
+      "repeatable": false
+    }
+  },
+  "config": {}
+}

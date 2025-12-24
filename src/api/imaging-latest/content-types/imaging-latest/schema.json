@@ -1,0 +1,48 @@
+{
+  "kind": "singleType",
+  "collectionName": "imaging_latests",
+  "info": {
+    "singularName": "imaging-latest",
+    "pluralName": "imaging-latests",
+    "displayName": "Imaging Latest"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "singleImage": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files"
+      ]
+    },
+    "singleMeta": {
+      "type": "json"
+    },
+    "stackImage": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files"
+      ]
+    },
+    "stackMeta": {
+      "type": "json"
+    },
+    "pierImage": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files"
+      ]
+    },
+    "pierMeta": {
+      "type": "json"
+    }
+  }
+}

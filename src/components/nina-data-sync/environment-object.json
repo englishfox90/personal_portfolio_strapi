@@ -1,0 +1,15 @@
+{
+  "collectionName": "components_nina_data_sync_environment_objects",
+  "info": {
+    "displayName": "Environment Object"
+  },
+  "options": {},
+  "attributes": {
+    "weather": {
+      "type": "component",
+      "component": "nina-data-sync.weather-object",
+      "repeatable": true
+    }
+  },
+  "config": {}
+}

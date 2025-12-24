@@ -1,0 +1,65 @@
+{
+  "collectionName": "components_nina_data_sync_equipment_objects",
+  "info": {
+    "displayName": "Equipment Object"
+  },
+  "options": {},
+  "attributes": {
+    "camera": {
+      "type": "component",
+      "component": "nina-data-sync.device-status-object",
+      "repeatable": false
+    },
+    "mount": {
+      "type": "component",
+      "component": "nina-data-sync.device-status-object",
+      "repeatable": false
+    },
+    "filterWheel": {
+      "type": "component",
+      "component": "nina-data-sync.device-status-object",
+      "repeatable": false
+    },
+    "focuser": {
+      "type": "component",
+      "component": "nina-data-sync.device-status-object",
+      "repeatable": false
+    },
+    "rotator": {
+      "type": "component",
+      "component": "nina-data-sync.device-status-object",
+      "repeatable": false
+    },
+    "dome": {
+      "type": "component",
+      "component": "nina-data-sync.device-status-object",
+      "repeatable": false
+    },
+    "flatDevice": {
+      "type": "component",
+      "component": "nina-data-sync.device-status-object",
+      "repeatable": true
+    },
+    "guider": {
+      "type": "component",
+      "component": "nina-data-sync.device-status-object",
+      "repeatable": false
+    },
+    "safetyMonitor": {
+      "type": "component",
+      "component": "nina-data-sync.device-status-object",
+      "repeatable": false
+    },
+    "switch": {
+      "type": "component",
+      "component": "nina-data-sync.device-status-object",
+      "repeatable": false
+    },
+    "weather": {
+      "type": "component",
+      "component": "nina-data-sync.weather-object",
+      "repeatable": false
+    }
+  },
+  "config": {}
+}

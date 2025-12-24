@@ -1,0 +1,28 @@
+{
+  "collectionName": "components_nina_data_sync_acquisition_objects",
+  "info": {
+    "displayName": "Acquisition Object"
+  },
+  "options": {},
+  "attributes": {
+    "startedAt": {
+      "type": "datetime"
+    },
+    "activeFilter": {
+      "type": "string"
+    },
+    "expsoureSeconds": {
+      "type": "integer"
+    },
+    "gain": {
+      "type": "integer"
+    },
+    "temperature": {
+      "type": "integer"
+    },
+    "timestamp": {
+      "type": "datetime"
+    }
+  },
+  "config": {}
+}
