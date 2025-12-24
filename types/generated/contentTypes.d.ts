@@ -392,7 +392,13 @@ export interface ApiCurrentlyImagingCurrentlyImaging
     activityLog: Schema.Attribute.Component<
       'nina-data-sync.activity-log-item-object',
       true
-    >;
+    > &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 25;
+        },
+        number
+      >;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

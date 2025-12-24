@@ -5,11 +5,16 @@
   },
   "options": {},
   "attributes": {
-    "image": {
-      "type": "text"
-    },
     "metaData": {
       "type": "json"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files"
+      ]
     }
   },
   "config": {}

@@ -108,7 +108,7 @@ export interface NinaDataSyncImageObject extends Struct.ComponentSchema {
     displayName: 'Image Object';
   };
   attributes: {
-    image: Schema.Attribute.Text;
+    image: Schema.Attribute.Media<'images' | 'files'>;
     metaData: Schema.Attribute.JSON;
   };
 }

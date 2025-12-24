@@ -29,7 +29,8 @@
     "activityLog": {
       "type": "component",
       "component": "nina-data-sync.activity-log-item-object",
-      "repeatable": true
+      "repeatable": true,
+      "max": 25
     },
     "target": {
       "type": "component",
