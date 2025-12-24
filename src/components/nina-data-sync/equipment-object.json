@@ -38,7 +38,7 @@
     "flatDevice": {
       "type": "component",
       "component": "nina-data-sync.device-status-object",
-      "repeatable": true
+      "repeatable": false
     },
     "guider": {
       "type": "component",
@@ -57,7 +57,7 @@
     },
     "weather": {
       "type": "component",
-      "component": "nina-data-sync.weather-object",
+      "component": "nina-data-sync.device-status-object",
       "repeatable": false
     }
   },

@@ -8,7 +8,7 @@
     "weather": {
       "type": "component",
       "component": "nina-data-sync.weather-object",
-      "repeatable": true
+      "repeatable": false
     }
   },
   "config": {}

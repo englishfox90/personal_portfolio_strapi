@@ -421,12 +421,12 @@ export interface ApiCurrentlyImagingCurrentlyImaging
   };
 }
 
-export interface ApiImagingLatestImagingLatest extends Struct.SingleTypeSchema {
-  collectionName: 'imaging_latests';
+export interface ApiPierImagePierImage extends Struct.SingleTypeSchema {
+  collectionName: 'pier_images';
   info: {
-    displayName: 'Imaging Latest';
-    pluralName: 'imaging-latests';
-    singularName: 'imaging-latest';
+    displayName: 'Pier Image';
+    pluralName: 'pier-images';
+    singularName: 'pier-image';
   };
   options: {
     draftAndPublish: true;
@@ -435,19 +435,70 @@ export interface ApiImagingLatestImagingLatest extends Struct.SingleTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    image: Schema.Attribute.Component<'nina-data-sync.image-object', false>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
-      'api::imaging-latest.imaging-latest'
+      'api::pier-image.pier-image'
     > &
       Schema.Attribute.Private;
-    pierImage: Schema.Attribute.Media<'images' | 'files'>;
-    pierMeta: Schema.Attribute.JSON;
     publishedAt: Schema.Attribute.DateTime;
-    singleImage: Schema.Attribute.Media<'images' | 'files'>;
-    singleMeta: Schema.Attribute.JSON;
-    stackImage: Schema.Attribute.Media<'images' | 'files'>;
-    stackMeta: Schema.Attribute.JSON;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiPreviewImagePreviewImage extends Struct.SingleTypeSchema {
+  collectionName: 'preview_images';
+  info: {
+    displayName: 'Preview image';
+    pluralName: 'preview-images';
+    singularName: 'preview-image';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    image: Schema.Attribute.Component<'nina-data-sync.image-object', false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::preview-image.preview-image'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiStackImageStackImage extends Struct.SingleTypeSchema {
+  collectionName: 'stack_images';
+  info: {
+    displayName: 'Stack Image';
+    pluralName: 'stack-images';
+    singularName: 'stack-image';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    image: Schema.Attribute.Component<'nina-data-sync.image-object', false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::stack-image.stack-image'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -964,7 +1015,9 @@ declare module '@strapi/strapi' {
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
       'api::currently-imaging.currently-imaging': ApiCurrentlyImagingCurrentlyImaging;
-      'api::imaging-latest.imaging-latest': ApiImagingLatestImagingLatest;
+      'api::pier-image.pier-image': ApiPierImagePierImage;
+      'api::preview-image.preview-image': ApiPreviewImagePreviewImage;
+      'api::stack-image.stack-image': ApiStackImageStackImage;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

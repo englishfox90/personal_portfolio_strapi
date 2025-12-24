@@ -12,6 +12,11 @@
       "type": "component",
       "component": "nina-data-sync.stack-object",
       "repeatable": false
+    },
+    "single": {
+      "type": "component",
+      "component": "nina-data-sync.single-object",
+      "repeatable": false
     }
   },
   "config": {}

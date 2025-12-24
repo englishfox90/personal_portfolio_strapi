@@ -7,10 +7,10 @@ export interface NinaDataSyncAcquisitionObject extends Struct.ComponentSchema {
   };
   attributes: {
     activeFilter: Schema.Attribute.String;
-    expsoureSeconds: Schema.Attribute.Integer;
+    exposureSeconds: Schema.Attribute.Integer;
     gain: Schema.Attribute.Integer;
     startedAt: Schema.Attribute.DateTime;
-    temperature: Schema.Attribute.Integer;
+    temperature: Schema.Attribute.Decimal;
     timestamp: Schema.Attribute.DateTime;
   };
 }
@@ -45,7 +45,7 @@ export interface NinaDataSyncEnvironmentObject extends Struct.ComponentSchema {
     displayName: 'Environment Object';
   };
   attributes: {
-    weather: Schema.Attribute.Component<'nina-data-sync.weather-object', true>;
+    weather: Schema.Attribute.Component<'nina-data-sync.weather-object', false>;
   };
 }
 
@@ -69,7 +69,7 @@ export interface NinaDataSyncEquipmentObject extends Struct.ComponentSchema {
     >;
     flatDevice: Schema.Attribute.Component<
       'nina-data-sync.device-status-object',
-      true
+      false
     >;
     focuser: Schema.Attribute.Component<
       'nina-data-sync.device-status-object',
@@ -95,7 +95,21 @@ export interface NinaDataSyncEquipmentObject extends Struct.ComponentSchema {
       'nina-data-sync.device-status-object',
       false
     >;
-    weather: Schema.Attribute.Component<'nina-data-sync.weather-object', false>;
+    weather: Schema.Attribute.Component<
+      'nina-data-sync.device-status-object',
+      false
+    >;
+  };
+}
+
+export interface NinaDataSyncImageObject extends Struct.ComponentSchema {
+  collectionName: 'components_nina_data_sync_image_objects';
+  info: {
+    displayName: 'Image Object';
+  };
+  attributes: {
+    image: Schema.Attribute.Text;
+    metaData: Schema.Attribute.JSON;
   };
 }
 
@@ -116,6 +130,7 @@ export interface NinaDataSyncPreviewObject extends Struct.ComponentSchema {
     displayName: 'Preview Object';
   };
   attributes: {
+    single: Schema.Attribute.Component<'nina-data-sync.single-object', false>;
     stack: Schema.Attribute.Component<'nina-data-sync.stack-object', false>;
     type: Schema.Attribute.String;
   };
@@ -155,7 +170,6 @@ export interface NinaDataSyncStackObject extends Struct.ComponentSchema {
   attributes: {
     filter: Schema.Attribute.String;
     frameCount: Schema.Attribute.Integer;
-    single: Schema.Attribute.Component<'nina-data-sync.single-object', false>;
     target: Schema.Attribute.String;
     updatedAtTime: Schema.Attribute.DateTime;
   };
@@ -224,6 +238,7 @@ declare module '@strapi/strapi' {
       'nina-data-sync.device-status-object': NinaDataSyncDeviceStatusObject;
       'nina-data-sync.environment-object': NinaDataSyncEnvironmentObject;
       'nina-data-sync.equipment-object': NinaDataSyncEquipmentObject;
+      'nina-data-sync.image-object': NinaDataSyncImageObject;
       'nina-data-sync.meta-object': NinaDataSyncMetaObject;
       'nina-data-sync.preview-object': NinaDataSyncPreviewObject;
       'nina-data-sync.project-object': NinaDataSyncProjectObject;

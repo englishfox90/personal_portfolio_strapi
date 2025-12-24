@@ -16,11 +16,6 @@
     },
     "updatedAtTime": {
       "type": "datetime"
-    },
-    "single": {
-      "type": "component",
-      "component": "nina-data-sync.single-object",
-      "repeatable": false
     }
   },
   "config": {}

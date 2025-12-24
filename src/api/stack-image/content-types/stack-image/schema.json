@@ -1,0 +1,20 @@
+{
+  "kind": "singleType",
+  "collectionName": "stack_images",
+  "info": {
+    "singularName": "stack-image",
+    "pluralName": "stack-images",
+    "displayName": "Stack Image"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "image": {
+      "type": "component",
+      "component": "nina-data-sync.image-object",
+      "repeatable": false
+    }
+  }
+}

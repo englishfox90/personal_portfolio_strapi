@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_nina_data_sync_image_objects",
+  "info": {
+    "displayName": "Image Object"
+  },
+  "options": {},
+  "attributes": {
+    "image": {
+      "type": "text"
+    },
+    "metaData": {
+      "type": "json"
+    }
+  },
+  "config": {}
+}

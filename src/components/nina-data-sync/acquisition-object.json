@@ -11,14 +11,14 @@
     "activeFilter": {
       "type": "string"
     },
-    "expsoureSeconds": {
+    "exposureSeconds": {
       "type": "integer"
     },
     "gain": {
       "type": "integer"
     },
     "temperature": {
-      "type": "integer"
+      "type": "decimal"
     },
     "timestamp": {
       "type": "datetime"
