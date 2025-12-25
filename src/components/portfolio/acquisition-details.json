@@ -1,0 +1,35 @@
+{
+  "collectionName": "components_portfolio_acquisition_details",
+  "info": {
+    "displayName": "Acquisition Details"
+  },
+  "options": {},
+  "attributes": {
+    "location": {
+      "type": "component",
+      "component": "portfolio.acquisition-location",
+      "repeatable": false
+    },
+    "integration": {
+      "type": "component",
+      "component": "portfolio.integration-summary",
+      "repeatable": false
+    },
+    "exposurePlan": {
+      "type": "component",
+      "component": "portfolio.filter-exposure-row",
+      "repeatable": true
+    },
+    "imaging_train": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::imaging-train.imaging-train"
+    },
+    "software_tools": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::software-tool.software-tool"
+    }
+  },
+  "config": {}
+}

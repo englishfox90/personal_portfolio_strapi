@@ -1,0 +1,27 @@
+{
+  "kind": "collectionType",
+  "collectionName": "object_types",
+  "info": {
+    "singularName": "object-type",
+    "pluralName": "object-types",
+    "displayName": "Object Type"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "portfolio_entries": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::portfolio-entry.portfolio-entry",
+      "mappedBy": "object_type"
+    },
+    "name": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "uid"
+    }
+  }
+}

@@ -230,6 +230,89 @@ export interface NinaDataSyncWeatherObject extends Struct.ComponentSchema {
   };
 }
 
+export interface PortfolioAcquisitionDetails extends Struct.ComponentSchema {
+  collectionName: 'components_portfolio_acquisition_details';
+  info: {
+    displayName: 'Acquisition Details';
+  };
+  attributes: {
+    exposurePlan: Schema.Attribute.Component<
+      'portfolio.filter-exposure-row',
+      true
+    >;
+    imaging_train: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::imaging-train.imaging-train'
+    >;
+    integration: Schema.Attribute.Component<
+      'portfolio.integration-summary',
+      false
+    >;
+    location: Schema.Attribute.Component<
+      'portfolio.acquisition-location',
+      false
+    >;
+    software_tools: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::software-tool.software-tool'
+    >;
+  };
+}
+
+export interface PortfolioAcquisitionLocation extends Struct.ComponentSchema {
+  collectionName: 'components_portfolio_acquisition_locations';
+  info: {
+    displayName: 'Acquisition Location';
+  };
+  attributes: {
+    dec: Schema.Attribute.String;
+    latitude: Schema.Attribute.Decimal;
+    longitude: Schema.Attribute.Decimal;
+    ra: Schema.Attribute.String;
+    siteName: Schema.Attribute.String;
+  };
+}
+
+export interface PortfolioEquipmentRig extends Struct.ComponentSchema {
+  collectionName: 'components_portfolio_equipment_rigs';
+  info: {
+    displayName: 'Equipment Rig';
+  };
+  attributes: {
+    filterSet: Schema.Attribute.Text;
+    guiding: Schema.Attribute.String;
+    imagingCamera: Schema.Attribute.String;
+    mount: Schema.Attribute.String;
+    otherEquipment: Schema.Attribute.Text;
+    telescope: Schema.Attribute.String;
+  };
+}
+
+export interface PortfolioFilterExposureRow extends Struct.ComponentSchema {
+  collectionName: 'components_portfolio_filter_exposure_rows';
+  info: {
+    displayName: 'Filter Exposure Row';
+  };
+  attributes: {
+    binning: Schema.Attribute.String;
+    exposureSeconds: Schema.Attribute.Integer;
+    filterName: Schema.Attribute.String;
+    frames: Schema.Attribute.Integer;
+    gain: Schema.Attribute.Integer;
+  };
+}
+
+export interface PortfolioIntegrationSummary extends Struct.ComponentSchema {
+  collectionName: 'components_portfolio_integration_summaries';
+  info: {
+    displayName: 'Integration Summary';
+  };
+  attributes: {
+    nights: Schema.Attribute.Integer;
+    totalIntegrationHours: Schema.Attribute.Decimal;
+  };
+}
+
 declare module '@strapi/strapi' {
   export module Public {
     export interface ComponentSchemas {
@@ -247,6 +330,11 @@ declare module '@strapi/strapi' {
       'nina-data-sync.stats-object': NinaDataSyncStatsObject;
       'nina-data-sync.target-object': NinaDataSyncTargetObject;
       'nina-data-sync.weather-object': NinaDataSyncWeatherObject;
+      'portfolio.acquisition-details': PortfolioAcquisitionDetails;
+      'portfolio.acquisition-location': PortfolioAcquisitionLocation;
+      'portfolio.equipment-rig': PortfolioEquipmentRig;
+      'portfolio.filter-exposure-row': PortfolioFilterExposureRow;
+      'portfolio.integration-summary': PortfolioIntegrationSummary;
     }
   }
 }

@@ -1,0 +1,73 @@
+{
+  "kind": "collectionType",
+  "collectionName": "portfolio_entries",
+  "info": {
+    "singularName": "portfolio-entry",
+    "pluralName": "portfolio-entries",
+    "displayName": "Portfolio Entry"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "description": {
+      "type": "blocks"
+    },
+    "heroImage": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "galleryImages": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "publishDate": {
+      "type": "date"
+    },
+    "integrationHours": {
+      "type": "integer"
+    },
+    "views": {
+      "type": "integer"
+    },
+    "object_type": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::object-type.object-type",
+      "inversedBy": "portfolio_entries"
+    },
+    "tags": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::tag.tag",
+      "mappedBy": "portfolio_entries"
+    },
+    "acquisition": {
+      "type": "component",
+      "component": "portfolio.acquisition-details",
+      "repeatable": false
+    },
+    "slug": {
+      "type": "uid"
+    }
+  }
+}

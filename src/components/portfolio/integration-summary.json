@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_portfolio_integration_summaries",
+  "info": {
+    "displayName": "Integration Summary"
+  },
+  "options": {},
+  "attributes": {
+    "totalIntegrationHours": {
+      "type": "decimal"
+    },
+    "nights": {
+      "type": "integer"
+    }
+  },
+  "config": {}
+}

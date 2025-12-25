@@ -1,0 +1,25 @@
+{
+  "collectionName": "components_portfolio_filter_exposure_rows",
+  "info": {
+    "displayName": "Filter Exposure Row"
+  },
+  "options": {},
+  "attributes": {
+    "filterName": {
+      "type": "string"
+    },
+    "frames": {
+      "type": "integer"
+    },
+    "exposureSeconds": {
+      "type": "integer"
+    },
+    "binning": {
+      "type": "string"
+    },
+    "gain": {
+      "type": "integer"
+    }
+  },
+  "config": {}
+}

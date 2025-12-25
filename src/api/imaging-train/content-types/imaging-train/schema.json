@@ -1,0 +1,23 @@
+{
+  "kind": "collectionType",
+  "collectionName": "imaging_trains",
+  "info": {
+    "singularName": "imaging-train",
+    "pluralName": "imaging-trains",
+    "displayName": "Imaging Train"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "equipmentList": {
+      "type": "component",
+      "component": "portfolio.equipment-rig",
+      "repeatable": false
+    },
+    "name": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "collectionName": "components_portfolio_acquisition_locations",
+  "info": {
+    "displayName": "Acquisition Location"
+  },
+  "options": {},
+  "attributes": {
+    "siteName": {
+      "type": "string"
+    },
+    "latitude": {
+      "type": "decimal"
+    },
+    "longitude": {
+      "type": "decimal"
+    },
+    "ra": {
+      "type": "string"
+    },
+    "dec": {
+      "type": "string"
+    }
+  },
+  "config": {}
+}

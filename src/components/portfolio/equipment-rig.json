@@ -1,0 +1,28 @@
+{
+  "collectionName": "components_portfolio_equipment_rigs",
+  "info": {
+    "displayName": "Equipment Rig"
+  },
+  "options": {},
+  "attributes": {
+    "imagingCamera": {
+      "type": "string"
+    },
+    "telescope": {
+      "type": "string"
+    },
+    "mount": {
+      "type": "string"
+    },
+    "filterSet": {
+      "type": "text"
+    },
+    "guiding": {
+      "type": "string"
+    },
+    "otherEquipment": {
+      "type": "text"
+    }
+  },
+  "config": {}
+}

@@ -1,0 +1,29 @@
+{
+  "kind": "collectionType",
+  "collectionName": "software_tools",
+  "info": {
+    "singularName": "software-tool",
+    "pluralName": "software-tools",
+    "displayName": "Software Tool"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "icon": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files"
+      ]
+    },
+    "url": {
+      "type": "string"
+    }
+  }
+}
