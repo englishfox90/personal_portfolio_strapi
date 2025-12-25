@@ -427,6 +427,37 @@ export interface ApiCurrentlyImagingCurrentlyImaging
   };
 }
 
+export interface ApiFooterFooter extends Struct.SingleTypeSchema {
+  collectionName: 'footers';
+  info: {
+    displayName: 'Footer';
+    pluralName: 'footers';
+    singularName: 'footer';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    astroBinLink: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    instagramLink: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::footer.footer'
+    > &
+      Schema.Attribute.Private;
+    privacyPolicy: Schema.Attribute.Blocks;
+    publishedAt: Schema.Attribute.DateTime;
+    siteDescription: Schema.Attribute.Text;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiPierImagePierImage extends Struct.SingleTypeSchema {
   collectionName: 'pier_images';
   info: {
@@ -1021,6 +1052,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
       'api::currently-imaging.currently-imaging': ApiCurrentlyImagingCurrentlyImaging;
+      'api::footer.footer': ApiFooterFooter;
       'api::pier-image.pier-image': ApiPierImagePierImage;
       'api::preview-image.preview-image': ApiPreviewImagePreviewImage;
       'api::stack-image.stack-image': ApiStackImageStackImage;
