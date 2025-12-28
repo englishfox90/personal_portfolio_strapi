@@ -6,9 +6,25 @@ module.exports = ({ env }) => ({
   },
   upload: {
     config: {
-      provider: "local",
+      provider: env('UPLOAD_PROVIDER', 'local'),
+      providerOptions: {
+        // S3-compatible storage configuration for Railway
+        s3Options: {
+          credentials: {
+            accessKeyId: env('AWS_ACCESS_KEY_ID'),
+            secretAccessKey: env('AWS_SECRET_ACCESS_KEY'),
+          },
+          region: env('AWS_DEFAULT_REGION', 'auto'),
+          endpoint: env('AWS_ENDPOINT_URL'), // Railway S3-compatible endpoint
+          params: {
+            ACL: env('AWS_ACL', 'public-read'),
+            Bucket: env('AWS_S3_BUCKET_NAME'),
+          },
+        },
+      },
       actionOptions: {
         upload: {},
+        uploadStream: {},
         delete: {},
       },
     },
@@ -40,7 +56,7 @@ module.exports = ({ env }) => ({
           description: 'Development server',
         },
         {
-          url: 'https://strapi-production-4a26.up.railway.app/api',
+          url: 'https://api.pfrastro.com/api',
           description: 'Production server',
         },
       ],
