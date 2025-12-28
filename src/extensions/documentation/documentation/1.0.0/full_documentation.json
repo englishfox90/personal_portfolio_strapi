@@ -14,7 +14,7 @@
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
     "termsOfService": "YOUR_TERMS_OF_SERVICE_URL",
-    "x-generation-date": "2025-12-28T01:12:38.850Z"
+    "x-generation-date": "2025-12-28T02:03:32.656Z"
   },
   "x-strapi-config": {
     "plugins": [
@@ -6382,7 +6382,8 @@
             "type": "integer"
           },
           "percentComplete": {
-            "type": "integer"
+            "type": "number",
+            "format": "float"
           }
         }
       },

@@ -24,7 +24,7 @@
       "type": "integer"
     },
     "percentComplete": {
-      "type": "integer"
+      "type": "decimal"
     }
   },
   "config": {}

@@ -114,7 +114,7 @@ export interface NinaDataSyncExposurePlansObject
     desired: Schema.Attribute.Integer;
     exposureSeconds: Schema.Attribute.Integer;
     filterName: Schema.Attribute.String;
-    percentComplete: Schema.Attribute.Integer;
+    percentComplete: Schema.Attribute.Decimal;
     remaining: Schema.Attribute.Integer;
   };
 }
