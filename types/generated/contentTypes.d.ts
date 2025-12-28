@@ -531,6 +531,7 @@ export interface ApiImagingTrainImagingTrain
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     equipmentList: Schema.Attribute.Component<'portfolio.equipment-rig', false>;
+    image: Schema.Attribute.Media<'images' | 'files'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
