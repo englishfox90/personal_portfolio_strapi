@@ -7,7 +7,7 @@ module.exports = ({ env }) => ({
   upload: {
     config: {
       provider: env('UPLOAD_PROVIDER', 'local'),
-      providerOptions: {
+      providerOptions: env('UPLOAD_PROVIDER') === 'aws-s3' ? {
         // S3-compatible storage configuration for Railway
         s3Options: {
           credentials: {
@@ -21,7 +21,7 @@ module.exports = ({ env }) => ({
             Bucket: env('AWS_S3_BUCKET_NAME'),
           },
         },
-      },
+      } : {},
       actionOptions: {
         upload: {},
         uploadStream: {},
