@@ -18,6 +18,11 @@
     },
     "targetEndTime": {
       "type": "datetime"
+    },
+    "exposurePlans": {
+      "type": "component",
+      "component": "nina-data-sync.exposure-plans-object",
+      "repeatable": true
     }
   },
   "config": {}

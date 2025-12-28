@@ -102,6 +102,23 @@ export interface NinaDataSyncEquipmentObject extends Struct.ComponentSchema {
   };
 }
 
+export interface NinaDataSyncExposurePlansObject
+  extends Struct.ComponentSchema {
+  collectionName: 'components_nina_data_sync_exposure_plans_objects';
+  info: {
+    displayName: 'Exposure Plans Object';
+  };
+  attributes: {
+    accepted: Schema.Attribute.Integer;
+    acquired: Schema.Attribute.Integer;
+    desired: Schema.Attribute.Integer;
+    exposureSeconds: Schema.Attribute.Integer;
+    filterName: Schema.Attribute.String;
+    percentComplete: Schema.Attribute.Integer;
+    remaining: Schema.Attribute.Integer;
+  };
+}
+
 export interface NinaDataSyncImageObject extends Struct.ComponentSchema {
   collectionName: 'components_nina_data_sync_image_objects';
   info: {
@@ -142,6 +159,10 @@ export interface NinaDataSyncProjectObject extends Struct.ComponentSchema {
     displayName: 'Project Object';
   };
   attributes: {
+    exposurePlans: Schema.Attribute.Component<
+      'nina-data-sync.exposure-plans-object',
+      true
+    >;
     name: Schema.Attribute.String;
     phase: Schema.Attribute.Enumeration<['acquiring', 'paused', 'idle']>;
     targetEndTime: Schema.Attribute.DateTime;
@@ -321,6 +342,7 @@ declare module '@strapi/strapi' {
       'nina-data-sync.device-status-object': NinaDataSyncDeviceStatusObject;
       'nina-data-sync.environment-object': NinaDataSyncEnvironmentObject;
       'nina-data-sync.equipment-object': NinaDataSyncEquipmentObject;
+      'nina-data-sync.exposure-plans-object': NinaDataSyncExposurePlansObject;
       'nina-data-sync.image-object': NinaDataSyncImageObject;
       'nina-data-sync.meta-object': NinaDataSyncMetaObject;
       'nina-data-sync.preview-object': NinaDataSyncPreviewObject;

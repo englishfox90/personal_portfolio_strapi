@@ -14,7 +14,7 @@
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
     "termsOfService": "YOUR_TERMS_OF_SERVICE_URL",
-    "x-generation-date": "2025-12-25T02:21:32.407Z"
+    "x-generation-date": "2025-12-28T01:02:39.863Z"
   },
   "x-strapi-config": {
     "plugins": [
@@ -6357,6 +6357,35 @@
           }
         }
       },
+      "NinaDataSyncExposurePlansObjectComponent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "filterName": {
+            "type": "string"
+          },
+          "exposureSeconds": {
+            "type": "integer"
+          },
+          "desired": {
+            "type": "integer"
+          },
+          "acquired": {
+            "type": "integer"
+          },
+          "accepted": {
+            "type": "integer"
+          },
+          "remaining": {
+            "type": "integer"
+          },
+          "percentComplete": {
+            "type": "integer"
+          }
+        }
+      },
       "NinaDataSyncProjectObjectComponent": {
         "type": "object",
         "properties": {
@@ -6377,6 +6406,12 @@
           "targetEndTime": {
             "type": "string",
             "format": "date-time"
+          },
+          "exposurePlans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NinaDataSyncExposurePlansObjectComponent"
+            }
           }
         }
       },
