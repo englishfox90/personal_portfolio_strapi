@@ -8030,7 +8030,7 @@
     },
     "/portfolio-entries/{id}/view": {
       "post": {
-        "tags": ["Portfolio Entry - Analytics"],
+        "tags": ["Portfolio-entry"],
         "summary": "Increment portfolio entry view count",
         "description": "Increments the view counter for a portfolio entry. Call this when a user views the portfolio page.",
         "operationId": "post/portfolio-entries/{id}/view",
@@ -8086,7 +8086,7 @@
     },
     "/posts/{id}/view": {
       "post": {
-        "tags": ["Post - Analytics"],
+        "tags": ["Post"],
         "summary": "Increment blog post view count",
         "description": "Increments the view counter for a blog post. Call this when a user views the blog post page.",
         "operationId": "post/posts/{id}/view",
@@ -8142,7 +8142,7 @@
     },
     "/programs/{id}/download": {
       "post": {
-        "tags": ["Program - Analytics"],
+        "tags": ["Program"],
         "summary": "Increment program download count",
         "description": "Increments the download counter for a program. Call this when a user initiates a download.",
         "operationId": "post/programs/{id}/download",
@@ -24768,18 +24768,6 @@
     {
       "name": "GitHub Release",
       "description": "Fetch latest release data from GitHub repositories. Data is cached for 1 hour."
-    },
-    {
-      "name": "Portfolio Entry - Analytics",
-      "description": "Track views on portfolio entries"
-    },
-    {
-      "name": "Post - Analytics",
-      "description": "Track views on blog posts"
-    },
-    {
-      "name": "Program - Analytics",
-      "description": "Track downloads of programs"
     },
     {
       "name": "Users-Permissions - Auth",
