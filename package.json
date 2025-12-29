@@ -27,6 +27,7 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.0.0",
+    "strapi-plugin-comments": "^3.1.2",
     "strapi-provider-upload-railway-s3": "file:providers/strapi-provider-upload-railway-s3",
     "styled-components": "^6.0.0"
   },

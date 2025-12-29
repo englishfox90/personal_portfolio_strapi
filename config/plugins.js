@@ -2,6 +2,31 @@ module.exports = ({ env }) => {
   const isS3 = env('UPLOAD_PROVIDER', 'aws-s3') === 'aws-s3';
   
   return {
+    // Comments plugin - must be before graphql if using GraphQL
+    comments: {
+      enabled: true,
+      config: {
+        badWords: true, // Enable profanity filtering
+        moderatorRoles: ['Super Admin', 'Author'],
+        approvalFlow: [], // No approval needed - comments visible immediately
+        entryLabel: {
+          '*': ['Title', 'title', 'Name', 'name', 'Subject', 'subject'],
+          'api::portfolio-entry.portfolio-entry': ['title'],
+          'api::post.post': ['title'],
+        },
+        // Content types that can have comments
+        enabledCollections: [
+          'api::portfolio-entry.portfolio-entry',
+          'api::post.post',
+        ],
+        reportReasons: {
+          BAD_LANGUAGE: 'BAD_LANGUAGE',
+          DISCRIMINATION: 'DISCRIMINATION',
+          SPAM: 'SPAM',
+          OTHER: 'OTHER',
+        },
+      },
+    },
     "users-permissions": {
       config: {
         jwtSecret: env("JWT_SECRET"),
