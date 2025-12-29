@@ -133,6 +133,7 @@ async function syncProgramWithRelease(repo, releaseData) {
         latestVersion: releaseData.tagName,
         downloadLink: primaryAsset?.browserDownloadUrl || null,
       },
+      status: 'published', // Ensure changes are published immediately
     });
 
     strapi.log.info(`Updated program "${program.name}" with release ${releaseData.tagName}`);

@@ -101,6 +101,7 @@ module.exports = createCoreController('api::program.program', ({ strapi }) => ({
         data: {
           downloads: currentDownloads + 1,
         },
+        status: 'published', // Ensure changes are published immediately
       });
 
       strapi.log.info(`Download count incremented for "${program.name}": ${currentDownloads} -> ${currentDownloads + 1}`);

@@ -37,6 +37,7 @@ module.exports = createCoreController('api::post.post', ({ strapi }) => ({
         data: {
           views: currentViews + 1,
         },
+        status: 'published', // Ensure changes are published immediately
       });
 
       strapi.log.debug(`View count incremented for post "${post.title}": ${currentViews} -> ${currentViews + 1}`);

@@ -37,6 +37,7 @@ module.exports = createCoreController('api::portfolio-entry.portfolio-entry', ({
         data: {
           views: currentViews + 1,
         },
+        status: 'published', // Ensure changes are published immediately
       });
 
       strapi.log.debug(`View count incremented for portfolio "${entry.title}": ${currentViews} -> ${currentViews + 1}`);
