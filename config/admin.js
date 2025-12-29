@@ -19,4 +19,9 @@ module.exports = ({ env }) => ({
     nps: env.bool('FLAG_NPS', true),
     promoteEE: env.bool('FLAG_PROMOTE_EE', true),
   },
+  // Disable preview feature to prevent "Preview config not found" error
+  // Enable and configure this when you're ready to use Preview with your frontend
+  preview: {
+    enabled: false,
+  },
 });
