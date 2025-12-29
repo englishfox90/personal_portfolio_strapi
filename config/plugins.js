@@ -2,6 +2,10 @@ module.exports = ({ env }) => {
   const isS3 = env('UPLOAD_PROVIDER', 'aws-s3') === 'aws-s3';
   
   return {
+    // SEO plugin - helps with meta tags and search engine optimization
+    seo: {
+      enabled: true,
+    },
     // Comments plugin - must be before graphql if using GraphQL
     comments: {
       enabled: true,
