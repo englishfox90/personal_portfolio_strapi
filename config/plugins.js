@@ -1,5 +1,6 @@
 module.exports = ({ env }) => {
   const isS3 = env('UPLOAD_PROVIDER', 'aws-s3') === 'aws-s3';
+  const hasMailgun = env('MAILGUN_API_KEY') && env('MAILGUN_DOMAIN');
   
   return {
     // SEO plugin - helps with meta tags and search engine optimization
@@ -60,21 +61,23 @@ module.exports = ({ env }) => {
         },
       },
     },
-    // Email provider - Mailgun
-    email: {
-      config: {
-        provider: 'mailgun',
-        providerOptions: {
-          key: env('MAILGUN_API_KEY'), // Required
-          domain: env('MAILGUN_DOMAIN'), // Required
-          url: env('MAILGUN_URL', 'https://api.mailgun.net'), // Use 'https://api.eu.mailgun.net' for EU region
-        },
-        settings: {
-          defaultFrom: env('MAILGUN_DEFAULT_FROM', 'noreply@example.com'),
-          defaultReplyTo: env('MAILGUN_DEFAULT_REPLY_TO', 'noreply@example.com'),
+    // Email provider - Mailgun (only enabled when credentials are configured)
+    ...(hasMailgun && {
+      email: {
+        config: {
+          provider: 'mailgun',
+          providerOptions: {
+            key: env('MAILGUN_API_KEY'),
+            domain: env('MAILGUN_DOMAIN'),
+            url: env('MAILGUN_URL', 'https://api.mailgun.net'),
+          },
+          settings: {
+            defaultFrom: env('MAILGUN_DEFAULT_FROM', 'noreply@example.com'),
+            defaultReplyTo: env('MAILGUN_DEFAULT_REPLY_TO', 'noreply@example.com'),
+          },
         },
       },
-    },
+    }),
     documentation: {
     enabled: true,
     config: {
