@@ -9,20 +9,17 @@ module.exports = ({ env }) => {
     },
     upload: {
       config: {
-        provider: isS3 ? 'aws-s3' : 'local',
+        // Use custom Railway S3 provider with signed URL support
+        provider: isS3 ? 'strapi-provider-upload-railway-s3' : 'local',
         providerOptions: isS3 ? {
-          s3Options: {
-            credentials: {
-              accessKeyId: env('AWS_ACCESS_KEY_ID'),
-              secretAccessKey: env('AWS_SECRET_ACCESS_KEY'),
-            },
-            region: env('AWS_DEFAULT_REGION', 'auto'),
-            endpoint: env('AWS_ENDPOINT_URL'),
-            forcePathStyle: true, // Required for Railway S3-compatible storage
-            params: {
-              Bucket: env('AWS_S3_BUCKET_NAME'),
-            },
-          },
+          accessKeyId: env('AWS_ACCESS_KEY_ID'),
+          secretAccessKey: env('AWS_SECRET_ACCESS_KEY'),
+          region: env('AWS_DEFAULT_REGION', 'auto'),
+          endpoint: env('AWS_ENDPOINT_URL'),
+          bucket: env('AWS_S3_BUCKET_NAME'),
+          forcePathStyle: true,
+          // Signed URL expiration in seconds (default: 7 days, max Railway: 90 days)
+          signedUrlExpires: env.int('AWS_SIGNED_URL_EXPIRES', 60 * 60 * 24 * 7),
         } : {},
         // Upload security configuration
         sizeLimit: 250 * 1024 * 1024, // 250MB max file size
