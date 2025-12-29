@@ -1,37 +1,33 @@
-module.exports = ({ env }) => ({
-  "users-permissions": {
-    config: {
-      jwtSecret: env("JWT_SECRET"),
+module.exports = ({ env }) => {
+  const isS3 = env('UPLOAD_PROVIDER', 'aws-s3') === 'aws-s3';
+  
+  return {
+    "users-permissions": {
+      config: {
+        jwtSecret: env("JWT_SECRET"),
+      },
     },
-  },
-  upload: {
-    config: {
-      provider: env('UPLOAD_PROVIDER', 'aws-s3'),
-      providerOptions: env('UPLOAD_PROVIDER', 'aws-s3') === 'aws-s3' ? {
-        // S3-compatible storage configuration for Railway
-        baseUrl: env('AWS_CDN_URL', `https://${env('AWS_S3_BUCKET_NAME')}.${env('AWS_DEFAULT_REGION', 'auto')}.digitaloceanspaces.com`),
-        rootPath: env('AWS_ROOT_PATH', ''),
-        s3Options: {
-          credentials: {
-            accessKeyId: env('AWS_ACCESS_KEY_ID'),
-            secretAccessKey: env('AWS_SECRET_ACCESS_KEY'),
-          },
+    upload: {
+      config: {
+        provider: isS3 ? 'aws-s3' : 'local',
+        providerOptions: isS3 ? {
+          accessKeyId: env('AWS_ACCESS_KEY_ID'),
+          secretAccessKey: env('AWS_SECRET_ACCESS_KEY'),
           region: env('AWS_DEFAULT_REGION', 'auto'),
-          endpoint: env('AWS_ENDPOINT_URL'), // Railway S3-compatible endpoint
-          forcePathStyle: true, // Required for S3-compatible services like Railway
+          endpoint: env('AWS_ENDPOINT_URL'),
+          s3ForcePathStyle: true, // Required for Railway S3-compatible storage
           params: {
             Bucket: env('AWS_S3_BUCKET_NAME'),
           },
+        } : {},
+        actionOptions: {
+          upload: {},
+          uploadStream: {},
+          delete: {},
         },
-      } : {},
-      actionOptions: {
-        upload: {},
-        uploadStream: {},
-        delete: {},
       },
     },
-  },
-  documentation: {
+    documentation: {
     enabled: true,
     config: {
       openapi: '3.0.0',
@@ -68,4 +64,5 @@ module.exports = ({ env }) => ({
       },
     },
   },
-});
+  };
+};

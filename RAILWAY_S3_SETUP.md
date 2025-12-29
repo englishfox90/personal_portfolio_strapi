@@ -13,12 +13,12 @@ Add the following environment variables to your Railway project:
 UPLOAD_PROVIDER=aws-s3
 
 # Railway automatically provides these when you create a bucket
+# Use variable references: ${{Bucket.ACCESS_KEY_ID}}, etc.
 AWS_ACCESS_KEY_ID=your_access_key_id
 AWS_SECRET_ACCESS_KEY=your_secret_access_key
-AWS_DEFAULT_REGION=auto
-AWS_S3_BUCKET_NAME=your_bucket_name
+AWS_REGION=auto
+AWS_BUCKET=your_bucket_name  # This is BUCKET from Railway, includes the hash suffix
 AWS_ENDPOINT_URL=https://storage.railway.app
-AWS_ACL=public-read
 ```
 
 ### Alternative: Using Amazon S3 Directly:
@@ -27,10 +27,9 @@ AWS_ACL=public-read
 UPLOAD_PROVIDER=aws-s3
 AWS_ACCESS_KEY_ID=your_aws_access_key_id
 AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
-AWS_DEFAULT_REGION=us-east-1
-AWS_S3_BUCKET_NAME=your_bucket_name
-AWS_ENDPOINT_URL=  # Leave empty for standard AWS S3
-AWS_ACL=public-read
+AWS_REGION=us-east-1
+AWS_BUCKET=your_bucket_name
+# Leave AWS_ENDPOINT_URL empty for standard AWS S3
 ```
 
 ## How to Enable in Railway:
