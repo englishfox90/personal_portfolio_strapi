@@ -49,6 +49,7 @@ module.exports = ({ env }) => {
           forcePathStyle: true,
           // Signed URL expiration in seconds (default: 7 days, max Railway: 90 days)
           signedUrlExpires: env.int('AWS_SIGNED_URL_EXPIRES', 60 * 60 * 24 * 7),
+          quality: 100,
         } : {},
         // Upload security configuration
         sizeLimit: 250 * 1024 * 1024, // 250MB max file size
