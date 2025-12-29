@@ -8,5 +8,10 @@ module.exports = ({ env }) => ({
     populateRelations: env.bool('WEBHOOKS_POPULATE_RELATIONS', false),
   },
   url: env('URL'),
-  proxy: true
+  proxy: true,
+  logger: {
+    updates: {
+      enabled: false, // Replaces deprecated STRAPI_DISABLE_UPDATE_NOTIFICATION
+    },
+  },
 });

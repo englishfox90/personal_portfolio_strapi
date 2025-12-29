@@ -11,15 +11,21 @@ module.exports = ({ env }) => {
       config: {
         provider: isS3 ? 'aws-s3' : 'local',
         providerOptions: isS3 ? {
-          accessKeyId: env('AWS_ACCESS_KEY_ID'),
-          secretAccessKey: env('AWS_SECRET_ACCESS_KEY'),
-          region: env('AWS_DEFAULT_REGION', 'auto'),
-          endpoint: env('AWS_ENDPOINT_URL'),
-          s3ForcePathStyle: true, // Required for Railway S3-compatible storage
-          params: {
-            Bucket: env('AWS_S3_BUCKET_NAME'),
+          s3Options: {
+            credentials: {
+              accessKeyId: env('AWS_ACCESS_KEY_ID'),
+              secretAccessKey: env('AWS_SECRET_ACCESS_KEY'),
+            },
+            region: env('AWS_DEFAULT_REGION', 'auto'),
+            endpoint: env('AWS_ENDPOINT_URL'),
+            forcePathStyle: true, // Required for Railway S3-compatible storage
+            params: {
+              Bucket: env('AWS_S3_BUCKET_NAME'),
+            },
           },
         } : {},
+        // Upload security configuration
+        sizeLimit: 250 * 1024 * 1024, // 250MB max file size
         actionOptions: {
           upload: {},
           uploadStream: {},
