@@ -21,7 +21,8 @@
       "type": "string"
     },
     "slug": {
-      "type": "uid"
+      "type": "uid",
+      "targetField": "label"
     },
     "tagType": {
       "type": "enumeration",
@@ -31,6 +32,12 @@
         "technique",
         "misc"
       ]
+    },
+    "posts": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::post.post",
+      "mappedBy": "tags"
     }
   }
 }

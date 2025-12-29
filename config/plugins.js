@@ -6,9 +6,11 @@ module.exports = ({ env }) => ({
   },
   upload: {
     config: {
-      provider: env('UPLOAD_PROVIDER', 'local'),
-      providerOptions: env('UPLOAD_PROVIDER') === 'aws-s3' ? {
+      provider: env('UPLOAD_PROVIDER', 'aws-s3'),
+      providerOptions: env('UPLOAD_PROVIDER', 'aws-s3') === 'aws-s3' ? {
         // S3-compatible storage configuration for Railway
+        baseUrl: env('AWS_CDN_URL', `https://${env('AWS_S3_BUCKET_NAME')}.${env('AWS_DEFAULT_REGION', 'auto')}.digitaloceanspaces.com`),
+        rootPath: env('AWS_ROOT_PATH', ''),
         s3Options: {
           credentials: {
             accessKeyId: env('AWS_ACCESS_KEY_ID'),
@@ -16,8 +18,8 @@ module.exports = ({ env }) => ({
           },
           region: env('AWS_DEFAULT_REGION', 'auto'),
           endpoint: env('AWS_ENDPOINT_URL'), // Railway S3-compatible endpoint
+          forcePathStyle: true, // Required for S3-compatible services like Railway
           params: {
-            ACL: env('AWS_ACL', 'public-read'),
             Bucket: env('AWS_S3_BUCKET_NAME'),
           },
         },

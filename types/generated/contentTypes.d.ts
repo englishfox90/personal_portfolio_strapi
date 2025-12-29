@@ -430,6 +430,107 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiAboutPageAboutPage extends Struct.SingleTypeSchema {
+  collectionName: 'about_pages';
+  info: {
+    displayName: 'About Page';
+    pluralName: 'about-pages';
+    singularName: 'about-page';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    eyebrow: Schema.Attribute.String;
+    heroBackground: Schema.Attribute.Media<'images' | 'files'>;
+    imaging_train: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::imaging-train.imaging-train'
+    >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::about-page.about-page'
+    > &
+      Schema.Attribute.Private;
+    photographerBody: Schema.Attribute.Blocks;
+    photographerTitle: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    remoteSection: Schema.Attribute.Component<'about.remote-section', false>;
+    stats: Schema.Attribute.Component<'about.stats', true>;
+    subtitle: Schema.Attribute.RichText;
+    title: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiAuthorAuthor extends Struct.CollectionTypeSchema {
+  collectionName: 'authors';
+  info: {
+    displayName: 'Author';
+    pluralName: 'authors';
+    singularName: 'author';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    avatar: Schema.Attribute.Media<'images' | 'files'>;
+    bio: Schema.Attribute.Blocks;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::author.author'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    slug: Schema.Attribute.UID<'name'>;
+    socials: Schema.Attribute.Component<'blog.socials', true>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiCategoryCategory extends Struct.CollectionTypeSchema {
+  collectionName: 'categories';
+  info: {
+    displayName: 'Category';
+    pluralName: 'categories';
+    singularName: 'category';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::category.category'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    slug: Schema.Attribute.UID<'name'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiCurrentlyImagingCurrentlyImaging
   extends Struct.SingleTypeSchema {
   collectionName: 'currently_imagings';
@@ -656,6 +757,42 @@ export interface ApiPortfolioEntryPortfolioEntry
   };
 }
 
+export interface ApiPostPost extends Struct.CollectionTypeSchema {
+  collectionName: 'posts';
+  info: {
+    displayName: 'Post';
+    pluralName: 'posts';
+    singularName: 'post';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    author: Schema.Attribute.Relation<'oneToOne', 'api::author.author'>;
+    content: Schema.Attribute.Blocks;
+    coverImage: Schema.Attribute.Media<'images' | 'files'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    excerpt: Schema.Attribute.Text;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::post.post'> &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    publishStatus: Schema.Attribute.Enumeration<
+      ['draft', 'published', 'archived']
+    >;
+    readingTimeMinutes: Schema.Attribute.Integer;
+    seo: Schema.Attribute.Component<'blog.seo', false>;
+    slug: Schema.Attribute.UID<'title'>;
+    tags: Schema.Attribute.Relation<'manyToMany', 'api::tag.tag'>;
+    title: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiPreviewImagePreviewImage extends Struct.SingleTypeSchema {
   collectionName: 'preview_images';
   info: {
@@ -765,8 +902,9 @@ export interface ApiTagTag extends Struct.CollectionTypeSchema {
       'manyToMany',
       'api::portfolio-entry.portfolio-entry'
     >;
+    posts: Schema.Attribute.Relation<'manyToMany', 'api::post.post'>;
     publishedAt: Schema.Attribute.DateTime;
-    slug: Schema.Attribute.UID;
+    slug: Schema.Attribute.UID<'label'>;
     tagType: Schema.Attribute.Enumeration<
       ['filter', 'target', 'technique', 'misc']
     >;
@@ -1286,12 +1424,16 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::about-page.about-page': ApiAboutPageAboutPage;
+      'api::author.author': ApiAuthorAuthor;
+      'api::category.category': ApiCategoryCategory;
       'api::currently-imaging.currently-imaging': ApiCurrentlyImagingCurrentlyImaging;
       'api::footer.footer': ApiFooterFooter;
       'api::imaging-train.imaging-train': ApiImagingTrainImagingTrain;
       'api::object-type.object-type': ApiObjectTypeObjectType;
       'api::pier-image.pier-image': ApiPierImagePierImage;
       'api::portfolio-entry.portfolio-entry': ApiPortfolioEntryPortfolioEntry;
+      'api::post.post': ApiPostPost;
       'api::preview-image.preview-image': ApiPreviewImagePreviewImage;
       'api::software-tool.software-tool': ApiSoftwareToolSoftwareTool;
       'api::stack-image.stack-image': ApiStackImageStackImage;

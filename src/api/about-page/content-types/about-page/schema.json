@@ -1,0 +1,53 @@
+{
+  "kind": "singleType",
+  "collectionName": "about_pages",
+  "info": {
+    "singularName": "about-page",
+    "pluralName": "about-pages",
+    "displayName": "About Page"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "eyebrow": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "richtext"
+    },
+    "heroBackground": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files"
+      ]
+    },
+    "photographerTitle": {
+      "type": "string"
+    },
+    "photographerBody": {
+      "type": "blocks"
+    },
+    "stats": {
+      "type": "component",
+      "component": "about.stats",
+      "repeatable": true
+    },
+    "imaging_train": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::imaging-train.imaging-train"
+    },
+    "remoteSection": {
+      "type": "component",
+      "component": "about.remote-section",
+      "repeatable": false
+    }
+  }
+}

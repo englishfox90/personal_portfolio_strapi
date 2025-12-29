@@ -1,5 +1,51 @@
 import type { Schema, Struct } from '@strapi/strapi';
 
+export interface AboutRemoteSection extends Struct.ComponentSchema {
+  collectionName: 'components_about_remote_sections';
+  info: {
+    displayName: 'remoteSection';
+  };
+  attributes: {
+    body: Schema.Attribute.RichText;
+    image: Schema.Attribute.Media<'images' | 'files'>;
+    stats: Schema.Attribute.Component<'about.stats', true>;
+    title: Schema.Attribute.String;
+  };
+}
+
+export interface AboutStats extends Struct.ComponentSchema {
+  collectionName: 'components_about_stats';
+  info: {
+    displayName: 'stats';
+  };
+  attributes: {
+    name: Schema.Attribute.String;
+    value: Schema.Attribute.String;
+  };
+}
+
+export interface BlogSeo extends Struct.ComponentSchema {
+  collectionName: 'components_blog_seos';
+  info: {
+    displayName: 'SEO';
+  };
+  attributes: {
+    description: Schema.Attribute.Text;
+    title: Schema.Attribute.String;
+  };
+}
+
+export interface BlogSocials extends Struct.ComponentSchema {
+  collectionName: 'components_blog_socials';
+  info: {
+    displayName: 'Socials';
+  };
+  attributes: {
+    name: Schema.Attribute.String;
+    url: Schema.Attribute.String;
+  };
+}
+
 export interface NinaDataSyncAcquisitionObject extends Struct.ComponentSchema {
   collectionName: 'components_nina_data_sync_acquisition_objects';
   info: {
@@ -337,6 +383,10 @@ export interface PortfolioIntegrationSummary extends Struct.ComponentSchema {
 declare module '@strapi/strapi' {
   export module Public {
     export interface ComponentSchemas {
+      'about.remote-section': AboutRemoteSection;
+      'about.stats': AboutStats;
+      'blog.seo': BlogSeo;
+      'blog.socials': BlogSocials;
       'nina-data-sync.acquisition-object': NinaDataSyncAcquisitionObject;
       'nina-data-sync.activity-log-item-object': NinaDataSyncActivityLogItemObject;
       'nina-data-sync.device-status-object': NinaDataSyncDeviceStatusObject;

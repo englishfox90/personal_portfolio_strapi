@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_blog_socials",
+  "info": {
+    "displayName": "Socials"
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    }
+  },
+  "config": {}
+}

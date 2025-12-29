@@ -1,0 +1,29 @@
+{
+  "collectionName": "components_about_remote_sections",
+  "info": {
+    "displayName": "remoteSection"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "body": {
+      "type": "richtext"
+    },
+    "stats": {
+      "type": "component",
+      "component": "about.stats",
+      "repeatable": true
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files"
+      ]
+    }
+  },
+  "config": {}
+}
