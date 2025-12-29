@@ -1,8 +1,8 @@
 module.exports = ({ env }) => {
   const isS3 = env('UPLOAD_PROVIDER', 'aws-s3') === 'aws-s3';
-  const hasMailgun = env('MAILGUN_API_KEY') && env('MAILGUN_DOMAIN');
   
-  return {
+  // Build the plugins config object
+  const config = {
     // SEO plugin - helps with meta tags and search engine optimization
     seo: {
       enabled: true,
@@ -61,59 +61,59 @@ module.exports = ({ env }) => {
         },
       },
     },
-    // Email provider - Mailgun (only enabled when credentials are configured)
-    ...(hasMailgun && {
-      email: {
-        config: {
-          provider: 'mailgun',
-          providerOptions: {
-            key: env('MAILGUN_API_KEY'),
-            domain: env('MAILGUN_DOMAIN'),
-            url: env('MAILGUN_URL', 'https://api.mailgun.net'),
-          },
-          settings: {
-            defaultFrom: env('MAILGUN_DEFAULT_FROM', 'noreply@example.com'),
-            defaultReplyTo: env('MAILGUN_DEFAULT_REPLY_TO', 'noreply@example.com'),
-          },
+    // Email provider - Mailgun
+    email: {
+      config: {
+        provider: 'mailgun',
+        providerOptions: {
+          key: env('MAILGUN_API_KEY'),
+          domain: env('MAILGUN_DOMAIN'),
+          url: env('MAILGUN_URL', 'https://api.mailgun.net'),
         },
-      },
-    }),
-    documentation: {
-    enabled: true,
-    config: {
-      openapi: '3.0.0',
-      info: {
-        version: '1.0.0',
-        title: 'Personal Portfolio API',
-        description: 'API documentation for the personal portfolio application',
-        contact: {
-          name: 'API Support',
-          email: 'pfoxreeks@gmail.com',
+        settings: {
+          defaultFrom: env('MAILGUN_DEFAULT_FROM', 'noreply@example.com'),
+          defaultReplyTo: env('MAILGUN_DEFAULT_REPLY_TO', 'noreply@example.com'),
         },
-        license: {
-          name: 'Apache 2.0',
-          url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
-        },
-      },
-      'x-strapi-config': {
-        plugins: ['upload', 'users-permissions'],
-        path: '/documentation',
-      },
-      servers: [
-        {
-          url: 'http://localhost:1338/api',
-          description: 'Development server',
-        },
-        {
-          url: 'https://api.pfrastro.com/api',
-          description: 'Production server',
-        },
-      ],
-      externalDocs: {
-        description: 'Find out more',
-        url: 'https://docs.strapi.io/developer-docs/latest/getting-started/introduction.html'
       },
     },
-  },
+    documentation: {
+      enabled: true,
+      config: {
+        openapi: '3.0.0',
+        info: {
+          version: '1.0.0',
+          title: 'Personal Portfolio API',
+          description: 'API documentation for the personal portfolio application',
+          contact: {
+            name: 'API Support',
+            email: 'pfoxreeks@gmail.com',
+          },
+          license: {
+            name: 'Apache 2.0',
+            url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
+          },
+        },
+        'x-strapi-config': {
+          plugins: ['upload', 'users-permissions'],
+          path: '/documentation',
+        },
+        servers: [
+          {
+            url: 'http://localhost:1338/api',
+            description: 'Development server',
+          },
+          {
+            url: 'https://api.pfrastro.com/api',
+            description: 'Production server',
+          },
+        ],
+        externalDocs: {
+          description: 'Find out more',
+          url: 'https://docs.strapi.io/developer-docs/latest/getting-started/introduction.html'
+        },
+      },
+    },
   };
+
+  return config;
 };
