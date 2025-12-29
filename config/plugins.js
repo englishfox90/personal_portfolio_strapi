@@ -1,25 +1,19 @@
 module.exports = ({ env }) => {
   const isS3 = env('UPLOAD_PROVIDER', 'aws-s3') === 'aws-s3';
   
-  // Build the plugins config object
-  const config = {
-    // SEO plugin - helps with meta tags and search engine optimization
-    seo: {
-      enabled: true,
-    },
-    // Comments plugin - must be before graphql if using GraphQL
+  return {
+    // Comments plugin for blog posts and portfolio entries
     comments: {
       enabled: true,
       config: {
-        badWords: true, // Enable profanity filtering
+        badWords: true,
         moderatorRoles: ['Super Admin', 'Author'],
-        approvalFlow: [], // No approval needed - comments visible immediately
+        approvalFlow: [],
         entryLabel: {
           '*': ['Title', 'title', 'Name', 'name', 'Subject', 'subject'],
           'api::portfolio-entry.portfolio-entry': ['title'],
           'api::post.post': ['title'],
         },
-        // Content types that can have comments
         enabledCollections: [
           'api::portfolio-entry.portfolio-entry',
           'api::post.post',
@@ -29,6 +23,21 @@ module.exports = ({ env }) => {
           DISCRIMINATION: 'DISCRIMINATION',
           SPAM: 'SPAM',
           OTHER: 'OTHER',
+        },
+      },
+    },
+    // Email provider using Mailgun
+    email: {
+      config: {
+        provider: '@strapi/provider-email-mailgun',
+        providerOptions: {
+          key: env('MAILGUN_API_KEY'),
+          domain: env('MAILGUN_DOMAIN'),
+          url: env('MAILGUN_URL', 'https://api.mailgun.net'),
+        },
+        settings: {
+          defaultFrom: env('MAILGUN_DEFAULT_FROM', 'noreply@pfrastro.com'),
+          defaultReplyTo: env('MAILGUN_DEFAULT_REPLY_TO', 'noreply@pfrastro.com'),
         },
       },
     },
@@ -61,59 +70,5 @@ module.exports = ({ env }) => {
         },
       },
     },
-    // Email provider - Mailgun
-    email: {
-      config: {
-        provider: 'mailgun',
-        providerOptions: {
-          key: env('MAILGUN_API_KEY'),
-          domain: env('MAILGUN_DOMAIN'),
-          url: env('MAILGUN_URL', 'https://api.mailgun.net'),
-        },
-        settings: {
-          defaultFrom: env('MAILGUN_DEFAULT_FROM', 'noreply@example.com'),
-          defaultReplyTo: env('MAILGUN_DEFAULT_REPLY_TO', 'noreply@example.com'),
-        },
-      },
-    },
-    documentation: {
-      enabled: true,
-      config: {
-        openapi: '3.0.0',
-        info: {
-          version: '1.0.0',
-          title: 'Personal Portfolio API',
-          description: 'API documentation for the personal portfolio application',
-          contact: {
-            name: 'API Support',
-            email: 'pfoxreeks@gmail.com',
-          },
-          license: {
-            name: 'Apache 2.0',
-            url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
-          },
-        },
-        'x-strapi-config': {
-          plugins: ['upload', 'users-permissions'],
-          path: '/documentation',
-        },
-        servers: [
-          {
-            url: 'http://localhost:1338/api',
-            description: 'Development server',
-          },
-          {
-            url: 'https://api.pfrastro.com/api',
-            description: 'Production server',
-          },
-        ],
-        externalDocs: {
-          description: 'Find out more',
-          url: 'https://docs.strapi.io/developer-docs/latest/getting-started/introduction.html'
-        },
-      },
-    },
   };
-
-  return config;
 };
