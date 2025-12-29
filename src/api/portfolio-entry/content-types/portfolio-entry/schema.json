@@ -67,7 +67,8 @@
       "repeatable": false
     },
     "slug": {
-      "type": "uid"
+      "type": "uid",
+      "targetField": "title"
     }
   }
 }
