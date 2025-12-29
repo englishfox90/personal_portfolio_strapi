@@ -60,6 +60,21 @@ module.exports = ({ env }) => {
         },
       },
     },
+    // Email provider - Mailgun
+    email: {
+      config: {
+        provider: 'mailgun',
+        providerOptions: {
+          key: env('MAILGUN_API_KEY'), // Required
+          domain: env('MAILGUN_DOMAIN'), // Required
+          url: env('MAILGUN_URL', 'https://api.mailgun.net'), // Use 'https://api.eu.mailgun.net' for EU region
+        },
+        settings: {
+          defaultFrom: env('MAILGUN_DEFAULT_FROM', 'noreply@example.com'),
+          defaultReplyTo: env('MAILGUN_DEFAULT_REPLY_TO', 'noreply@example.com'),
+        },
+      },
+    },
     documentation: {
     enabled: true,
     config: {
