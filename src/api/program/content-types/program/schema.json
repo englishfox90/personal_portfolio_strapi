@@ -48,6 +48,9 @@
     },
     "downloadLink": {
       "type": "string"
+    },
+    "launchUrl": {
+      "type": "string"
     }
   }
 }

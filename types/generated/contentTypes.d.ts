@@ -842,6 +842,7 @@ export interface ApiProgramProgram extends Struct.CollectionTypeSchema {
     githubRepo: Schema.Attribute.String;
     image: Schema.Attribute.Media<'images' | 'files'>;
     latestVersion: Schema.Attribute.String;
+    launchUrl: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
