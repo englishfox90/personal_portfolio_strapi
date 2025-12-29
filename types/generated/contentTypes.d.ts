@@ -790,6 +790,7 @@ export interface ApiPostPost extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    views: Schema.Attribute.Integer;
   };
 }
 
@@ -815,6 +816,43 @@ export interface ApiPreviewImagePreviewImage extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiProgramProgram extends Struct.CollectionTypeSchema {
+  collectionName: 'programs';
+  info: {
+    displayName: 'Program';
+    pluralName: 'programs';
+    singularName: 'program';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.RichText;
+    downloadLink: Schema.Attribute.String;
+    downloads: Schema.Attribute.Integer;
+    githubRepo: Schema.Attribute.String;
+    image: Schema.Attribute.Media<'images' | 'files'>;
+    latestVersion: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::program.program'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    readMeURL: Schema.Attribute.String;
+    slug: Schema.Attribute.UID<'name'>;
+    tag: Schema.Attribute.Relation<'oneToOne', 'api::tag.tag'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -906,7 +944,7 @@ export interface ApiTagTag extends Struct.CollectionTypeSchema {
     publishedAt: Schema.Attribute.DateTime;
     slug: Schema.Attribute.UID<'label'>;
     tagType: Schema.Attribute.Enumeration<
-      ['filter', 'target', 'technique', 'misc']
+      ['program', 'filter', 'target', 'technique', 'misc']
     >;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -1543,6 +1581,7 @@ declare module '@strapi/strapi' {
       'api::portfolio-entry.portfolio-entry': ApiPortfolioEntryPortfolioEntry;
       'api::post.post': ApiPostPost;
       'api::preview-image.preview-image': ApiPreviewImagePreviewImage;
+      'api::program.program': ApiProgramProgram;
       'api::software-tool.software-tool': ApiSoftwareToolSoftwareTool;
       'api::stack-image.stack-image': ApiStackImageStackImage;
       'api::tag.tag': ApiTagTag;

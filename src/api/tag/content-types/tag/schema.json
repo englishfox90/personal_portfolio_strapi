@@ -27,6 +27,7 @@
     "tagType": {
       "type": "enumeration",
       "enum": [
+        "program",
         "filter",
         "target",
         "technique",
