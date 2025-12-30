@@ -80,6 +80,46 @@ Generate signed URLs for multiple files in a single request. More efficient when
 
 ---
 
+### 3. Get Signed URL by Key (GET - CDN Friendly)
+
+GET request for a single signed URL - easier to cache by CDNs and browsers.
+
+**Endpoint:** `GET /signed-url/:key`
+
+**Example:** `GET /signed-url/Christmas_Tree_47f57970a1.png`
+
+**Response:**
+```json
+{
+  "url": "https://storage.railway.app/indexed-cart-xxx/Christmas_Tree_47f57970a1.png?X-Amz-Algorithm=...",
+  "expiresIn": 604800
+}
+```
+
+---
+
+### 4. Image Redirect (FASTEST - Direct Use in `<img src>`)
+
+Redirects directly to the signed S3 URL. **Most performant** - use directly in `<img>` tags without JavaScript!
+
+**Endpoint:** `GET /image/:key`
+
+**Usage:**
+```html
+<img src="https://api.pfrastro.com/api/image/Christmas_Tree_47f57970a1.png" alt="Christmas Tree" />
+```
+
+The endpoint returns a **302 redirect** to the signed S3 URL. The browser follows the redirect automatically.
+
+| Benefit | Description |
+|---------|-------------|
+| No JavaScript | Works in plain HTML `<img>` tags |
+| Automatic caching | Browser caches the redirect |
+| CDN friendly | CDNs can cache the redirect response |
+| Simpler frontend | No need for signed URL hooks/state |
+
+---
+
 ## Integration Examples
 
 ### Basic Fetch Example
@@ -308,11 +348,38 @@ The `url` fields contain the S3 key (filename). Pass these to the `/api/signed-u
 
 ## Caching Recommendations
 
-Signed URLs are valid for **7 days** (604800 seconds) by default. Consider:
+Signed URLs are valid for **7 days** (604800 seconds) by default. The backend implements several caching strategies:
 
+### Backend Caching (Automatic)
+1. **In-memory URL cache:** Signed URLs are cached on the server, so repeated requests for the same file return instantly
+2. **S3 client reuse:** Connection pooling reduces latency
+3. **Cache-Control headers:** Responses include cache headers for CDN/browser caching
+
+### Frontend Caching Recommendations
 1. **Client-side caching:** Store signed URLs in React state/context to avoid re-fetching during session
 2. **Server-side caching:** If using SSR, cache signed URLs with appropriate TTL (e.g., Redis with 6-day expiry)
 3. **Image loading:** Use the `thumbnail` format for lists, `large` for detail views
+
+---
+
+## Performance Tips
+
+### 🚀 Option 1: Direct Image Redirect (FASTEST)
+Use the redirect endpoint directly in `<img src>` - eliminates JavaScript round-trip:
+```html
+<img src="https://api.pfrastro.com/api/image/Christmas_Tree_47f57970a1.png" alt="..." />
+```
+This works because the endpoint redirects (302) directly to the signed S3 URL.
+
+### 🚀 Option 2: GET endpoint for CDN caching
+```javascript
+// GET request - can be cached by CDNs
+const response = await fetch(`${STRAPI_URL}/api/signed-url/Christmas_Tree_47f57970a1.png`);
+const data = await response.json();
+```
+
+### 🚀 Option 3: Batch requests for lists
+Always use `/api/signed-urls` (batch) instead of multiple single requests when loading pages with many images.
 
 ---
 

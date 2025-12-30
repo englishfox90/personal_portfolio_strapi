@@ -22,5 +22,28 @@ module.exports = {
         middlewares: [],
       },
     },
+    {
+      // GET endpoint - more CDN-friendly for single file
+      method: 'GET',
+      path: '/signed-url/:key',
+      handler: 'signed-url.getSignedUrlByKey',
+      config: {
+        auth: false,
+        policies: [],
+        middlewares: [],
+      },
+    },
+    {
+      // Image redirect endpoint - most performant for direct <img src="...">
+      // Use this as: <img src="https://api.pfrastro.com/api/image/filename.png" />
+      method: 'GET',
+      path: '/image/:key',
+      handler: 'signed-url.redirectToSignedUrl',
+      config: {
+        auth: false,
+        policies: [],
+        middlewares: [],
+      },
+    },
   ],
 };
