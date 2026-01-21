@@ -17,12 +17,15 @@
  */
 
 module.exports = (plugin) => {
-  // Store reference to original image manipulation service factory
-  const originalImageManipulation = plugin.services['image-manipulation'];
+  // In Strapi v5, services are factory functions that return the service
+  // We need to wrap the existing factory, not call it directly
+  const originalImageManipulationFactory = plugin.services['image-manipulation'];
 
-  // Override the image manipulation service
-  plugin.services['image-manipulation'] = ({ strapi }) => {
-    const originalService = originalImageManipulation({ strapi });
+  // Replace with our custom factory
+  plugin.services['image-manipulation'] = (context) => {
+    // Call the original factory to get the base service
+    const originalService = originalImageManipulationFactory(context);
+    const { strapi } = context;
 
     return {
       ...originalService,
