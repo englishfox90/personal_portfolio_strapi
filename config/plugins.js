@@ -59,7 +59,6 @@ module.exports = ({ env }) => {
           forcePathStyle: true,
           // Signed URL expiration in seconds (default: 7 days, max Railway: 90 days)
           signedUrlExpires: env.int('AWS_SIGNED_URL_EXPIRES', 60 * 60 * 24 * 7),
-          quality: 100,
         } : {},
         // Upload security configuration
         sizeLimit: 250 * 1024 * 1024, // 250MB max file size
@@ -67,6 +66,15 @@ module.exports = ({ env }) => {
           upload: {},
           uploadStream: {},
           delete: {},
+        },
+        // Responsive image breakpoints - these create smaller versions for web display
+        // The original file is ALWAYS preserved untouched for full-resolution viewing
+        breakpoints: {
+          xlarge: 1920,  // For large displays
+          large: 1000,   // For desktop
+          medium: 750,   // For tablets
+          small: 500,    // For mobile
+          thumbnail: 245 // For thumbnails/previews
         },
       },
     },
