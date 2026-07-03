@@ -64,4 +64,10 @@ UPLOAD_PROVIDER=local
 
 - The configuration automatically falls back to `local` provider if environment variables are not set
 - Security middleware is configured to allow loading images from your S3 bucket
-- Files are set to `public-read` ACL by default for public access
+- The bucket is **private** — objects are NOT publicly readable. Access goes through
+  time-limited signed URLs: the custom provider (`providers/strapi-provider-upload-railway-s3`)
+  stores only the S3 key in the database and generates presigned `GetObject` URLs on demand
+  (for the admin panel via the provider's `getSignedUrl()`, and for the public site via the
+  `/api/signed-url*` and `/api/image/:key` endpoints, which validate that the requested key
+  belongs to a real upload before signing). Signed URL lifetime is controlled by
+  `AWS_SIGNED_URL_EXPIRES` (default 7 days).
