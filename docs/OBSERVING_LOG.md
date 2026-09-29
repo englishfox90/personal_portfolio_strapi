@@ -37,6 +37,14 @@ The ingest:
    frames) records the frame once. The observing night comes from the
    `_NIGHT_YYYY-MM-DD` token NINA stamps into the filename; if absent, it is
    the local date twelve hours before `capturedAt` in `OBSERVING_LOG_TIMEZONE`.
+   The **target** is read from the `_SUBJECT_<name>_NIGHT_` token in the same
+   filename, then from the `Image saved: <name> (...)` activity-log line whose
+   timestamp matches `capturedAt`, and only then from `payload.target`. The rig
+   pushes *after* the save, so when the scheduler has already switched targets
+   the payload's current target is the *next* one, not the frame's. For the
+   same reason RA/Dec and project name are copied from the payload only when
+   its current target matches the frame's target; otherwise they stay null and
+   are filled by a later matching push.
 2. **Session** — find-or-create by `night|target`, then bump counts, per-filter
    totals, first/last frame and stat summaries.
 3. **Night** — find-or-create by date, then bump totals.

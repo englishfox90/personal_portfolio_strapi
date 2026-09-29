@@ -82,9 +82,22 @@ function makeFakeStrapi() {
 // Fixture: what the rig pushes (trimmed)
 // ---------------------------------------------------------------------------
 
-function pushPayload({ seq, filter = 'Red', capturedAt, weatherAt, target = 'Trifid Nebula' }) {
+function pushPayload({
+  seq,
+  filter = 'Red',
+  capturedAt,
+  weatherAt,
+  target = 'Trifid Nebula',
+  // The target the rig has *moved on to* by the time it pushes (defaults to
+  // the frame's own target, i.e. no switch)
+  currentTarget = target,
+  project = 'M8 M20 Duo',
+}) {
   return {
     metaData: { lastUpdated: capturedAt, ninaConnected: true },
+    activityLog: [
+      { timestamp: capturedAt, message: `Image saved: ${target} (${filter}, 240s, -5°C)`, level: 'info' },
+    ],
     acquisition: {
       startedAt: capturedAt,
       activeFilter: filter,
@@ -93,8 +106,8 @@ function pushPayload({ seq, filter = 'Red', capturedAt, weatherAt, target = 'Tri
       timestamp: capturedAt,
       exposureSeconds: 240,
     },
-    target: { name: target, ra: '18:05:09', dec: "-23° 52' 35\"" },
-    project: { name: 'M8 M20 Duo', phase: 'acquiring', exposurePlans: [] },
+    target: { name: currentTarget, ra: '18:05:09', dec: "-23° 52' 35\"" },
+    project: { name: project, phase: 'acquiring', exposurePlans: [] },
     environment: {
       weather: {
         connected: true,
@@ -255,6 +268,56 @@ test('a push with no frame and no known night stores nothing', async () => {
   assert.equal(result.frame, null);
   assert.equal(result.weather, false);
   assert.equal(strapi.store.get(UID.night).length, 0);
+});
+
+test('a frame pushed after the scheduler switched target stays with its own target', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  // Real case from 2026-09-29 03:39Z: last Trifid sub saved, push already
+  // carries target "NGC 6992 Panel 1" / project "Eastern Veil Nebula".
+  const result = await ingest(
+    pushPayload({
+      seq: 51,
+      filter: 'Green',
+      capturedAt: '2026-09-29T03:39:33.384Z',
+      target: 'Trifid Nebula',
+      currentTarget: 'NGC 6992 Panel 1',
+      project: 'Eastern Veil Nebula',
+    })
+  );
+
+  assert.equal(result.frame.targetName, 'Trifid Nebula');
+  const sessions = strapi.store.get(UID.session);
+  assert.equal(sessions.length, 1);
+  assert.equal(sessions[0].sessionKey, '2026-09-28|trifid nebula');
+  assert.equal(sessions[0].projectName, null, 'project of the *next* target must not be copied');
+  assert.equal(sessions[0].ra, null);
+  assert.equal(strapi.store.get(UID.frame)[0].projectName, null);
+
+  // A later push whose current target matches fills the gaps
+  await ingest(
+    pushPayload({ seq: 52, filter: 'Green', capturedAt: '2026-09-29T03:43:40Z', target: 'Trifid Nebula' })
+  );
+  assert.equal(sessions[0].projectName, 'M8 M20 Duo');
+  assert.equal(sessions[0].ra, '18:05:09');
+  assert.equal(sessions[0].frameCount, 2);
+});
+
+test('target falls back to the activity log, then the payload, when the filename lacks a subject', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  const viaLog = pushPayload({ seq: 1, capturedAt: '2026-09-29T03:19:06Z', currentTarget: 'Next Target' });
+  viaLog.preview.single.filename = 'LIGHT_NIGHT_2026-09-28_0001.fits';
+  await ingest(viaLog);
+  assert.equal(strapi.store.get(UID.frame)[0].targetName, 'Trifid Nebula');
+
+  const viaPayload = pushPayload({ seq: 2, capturedAt: '2026-09-29T03:23:10Z', currentTarget: 'Next Target' });
+  viaPayload.preview.single.filename = 'LIGHT_NIGHT_2026-09-28_0002.fits';
+  viaPayload.activityLog = [];
+  await ingest(viaPayload);
+  assert.equal(strapi.store.get(UID.frame)[1].targetName, 'Next Target');
 });
 
 test('falls back to the timezone rollover when the filename has no night token', async () => {
