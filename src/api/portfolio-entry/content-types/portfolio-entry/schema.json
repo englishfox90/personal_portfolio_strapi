@@ -69,6 +69,12 @@
     "slug": {
       "type": "uid",
       "targetField": "title"
+    },
+    "imaging_projects": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::imaging-project.imaging-project",
+      "mappedBy": "portfolioEntries"
     }
   }
 }

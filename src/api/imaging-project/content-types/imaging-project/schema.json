@@ -1,0 +1,71 @@
+{
+  "kind": "collectionType",
+  "collectionName": "imaging_projects",
+  "info": {
+    "singularName": "imaging-project",
+    "pluralName": "imaging-projects",
+    "displayName": "Imaging Project",
+    "description": "One scheduler project: every session shot under it, across nights and targets (mosaic panels). Created and totalled by the observing-log ingest; link it to the portfolio entries it produced."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "name",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["active", "complete", "paused", "abandoned"],
+      "default": "active",
+      "required": true
+    },
+    "notes": {
+      "type": "text"
+    },
+    "targetNames": {
+      "type": "json"
+    },
+    "firstFrameAt": {
+      "type": "datetime"
+    },
+    "lastFrameAt": {
+      "type": "datetime"
+    },
+    "frameCount": {
+      "type": "integer",
+      "default": 0
+    },
+    "integrationSeconds": {
+      "type": "integer",
+      "default": 0
+    },
+    "sessionCount": {
+      "type": "integer",
+      "default": 0
+    },
+    "filters": {
+      "type": "json"
+    },
+    "sessions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::imaging-session.imaging-session",
+      "mappedBy": "project"
+    },
+    "portfolioEntries": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::portfolio-entry.portfolio-entry",
+      "inversedBy": "imaging_projects"
+    }
+  }
+}
