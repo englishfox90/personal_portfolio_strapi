@@ -24,6 +24,9 @@
 const {
   nightFromFilename,
   nightFromDate,
+  targetFromFilename,
+  targetFromActivityLog,
+  sameTarget,
   isIsoDate,
   toNumber,
   foldSummaries,
@@ -135,19 +138,24 @@ module.exports = ({ strapi }) => {
     const night = nightFromFilename(filename) || nightFromDate(capturedAt, timeZone);
     if (!isIsoDate(night)) return null;
 
-    const target = payload.target || {};
-    const project = payload.project || {};
     const acquisition = payload.acquisition || {};
     const stack = payload.preview.stack || {};
 
-    const targetName = firstString(target.name, stack.target) || 'Unknown target';
-    const projectName = firstString(project.name);
+    // The rig pushes after the save; the scheduler may already have moved to
+    // the next target, so prefer sources tied to the frame itself.
+    const targetName =
+      targetFromFilename(filename) ||
+      targetFromActivityLog(payload.activityLog, capturedAt) ||
+      firstString(payload.target && payload.target.name, stack.target) ||
+      'Unknown target';
+    const context = targetContext(payload, targetName);
+    const projectName = context.projectName;
     const exposureSeconds = Math.max(0, Math.round(toNumber(single.exposureSeconds) || 0));
     const filter = firstString(single.filter, acquisition.activeFilter) || 'Unknown';
     const stats = single.stats || {};
 
     const nightDoc = await findOrCreateNight(night);
-    const sessionDoc = await findOrCreateSession(nightDoc, night, targetName, payload);
+    const sessionDoc = await findOrCreateSession(nightDoc, night, targetName, context);
 
     const frame = await strapi.documents(UID.frame).create({
       data: {
@@ -170,7 +178,7 @@ module.exports = ({ strapi }) => {
       },
     });
 
-    await bumpSession(sessionDoc, { capturedAt, filter, exposureSeconds, stats, payload });
+    await bumpSession(sessionDoc, { capturedAt, filter, exposureSeconds, stats, context });
     await bumpNight(nightDoc, { capturedAt, exposureSeconds });
 
     return { created: true, documentId: frame.documentId, night, targetName };
@@ -192,13 +200,10 @@ module.exports = ({ strapi }) => {
     });
   }
 
-  async function findOrCreateSession(nightDoc, night, targetName, payload) {
+  async function findOrCreateSession(nightDoc, night, targetName, context) {
     const key = sessionKey(night, targetName);
     const found = await strapi.documents(UID.session).findFirst({ filters: { sessionKey: key } });
     if (found) return found;
-
-    const target = payload.target || {};
-    const project = payload.project || {};
 
     const created = await strapi.documents(UID.session).create({
       data: {
@@ -206,9 +211,9 @@ module.exports = ({ strapi }) => {
         nightDate: night,
         night: nightDoc.documentId,
         targetName,
-        projectName: firstString(project.name),
-        ra: firstString(target.ra),
-        dec: firstString(target.dec),
+        projectName: context.projectName,
+        ra: context.ra,
+        dec: context.dec,
         frameCount: 0,
         integrationSeconds: 0,
         filters: {},
@@ -226,7 +231,7 @@ module.exports = ({ strapi }) => {
     return created;
   }
 
-  async function bumpSession(sessionDoc, { capturedAt, filter, exposureSeconds, stats, payload }) {
+  async function bumpSession(sessionDoc, { capturedAt, filter, exposureSeconds, stats, context }) {
     const filters = { ...(sessionDoc.filters || {}) };
     const bucket = filters[filter] || { frames: 0, seconds: 0, exposureSeconds };
     filters[filter] = {
@@ -245,12 +250,10 @@ module.exports = ({ strapi }) => {
       stats: foldSummaries(sessionDoc.stats, stats, FRAME_STATS),
     };
 
-    // Fill coordinates/project if the session was created before they arrived
-    const target = payload.target || {};
-    const project = payload.project || {};
-    if (!sessionDoc.ra && target.ra) data.ra = String(target.ra);
-    if (!sessionDoc.dec && target.dec) data.dec = String(target.dec);
-    if (!sessionDoc.projectName && project.name) data.projectName = String(project.name);
+    // Fill coordinates/project once a push whose target matches this frame arrives
+    if (!sessionDoc.ra && context.ra) data.ra = context.ra;
+    if (!sessionDoc.dec && context.dec) data.dec = context.dec;
+    if (!sessionDoc.projectName && context.projectName) data.projectName = context.projectName;
 
     await strapi.documents(UID.session).update({ documentId: sessionDoc.documentId, data });
   }
@@ -322,6 +325,24 @@ module.exports = ({ strapi }) => {
   }
 
   // ---------------------------------------------------------------------------
+
+  /**
+   * Coordinates and project from the payload, but only when the payload's
+   * current target is the one the frame was shot on. Otherwise they belong to
+   * the next target and are left null to be filled by a later push.
+   */
+  function targetContext(payload, targetName) {
+    const target = payload.target || {};
+    const project = payload.project || {};
+    if (!sameTarget(target.name, targetName)) {
+      return { ra: null, dec: null, projectName: null };
+    }
+    return {
+      ra: firstString(target.ra),
+      dec: firstString(target.dec),
+      projectName: firstString(project.name),
+    };
+  }
 
   function firstString(...values) {
     for (const v of values) {

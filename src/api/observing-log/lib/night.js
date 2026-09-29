@@ -6,6 +6,8 @@
  */
 
 const NIGHT_TOKEN = /_NIGHT_(\d{4}-\d{2}-\d{2})/;
+const SUBJECT_TOKEN = /_SUBJECT_(.+?)_NIGHT_/;
+const IMAGE_SAVED = /^Image saved:\s*(.+?)\s*\(/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
@@ -39,6 +41,43 @@ function nightFromDate(date, timeZone) {
   } catch {
     return shifted.toISOString().slice(0, 10);
   }
+}
+
+/**
+ * The target the frame was actually shot on. NINA writes it into the
+ * filename via $$TARGETNAME$$ (`..._SUBJECT_Trifid Nebula_NIGHT_...`). This
+ * matters because the rig pushes *after* the save, and by then the scheduler
+ * may already have moved on to the next target, so `payload.target` can be
+ * wrong for the frame in `preview.single`.
+ */
+function targetFromFilename(filename) {
+  if (typeof filename !== 'string') return null;
+  const match = filename.match(SUBJECT_TOKEN);
+  const name = match ? match[1].trim() : '';
+  return name || null;
+}
+
+/**
+ * Second choice: the "Image saved: <target> (...)" activity-log line whose
+ * timestamp matches the frame's capture time (within `toleranceMs`).
+ */
+function targetFromActivityLog(activityLog, capturedAt, toleranceMs = 2000) {
+  if (!Array.isArray(activityLog)) return null;
+  const t = new Date(capturedAt).getTime();
+  if (Number.isNaN(t)) return null;
+  for (const entry of activityLog) {
+    if (!entry || typeof entry.message !== 'string') continue;
+    const match = entry.message.match(IMAGE_SAVED);
+    if (!match) continue;
+    const et = new Date(entry.timestamp).getTime();
+    if (!Number.isNaN(et) && Math.abs(et - t) <= toleranceMs) return match[1].trim() || null;
+  }
+  return null;
+}
+
+function sameTarget(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
 function isIsoDate(value) {
@@ -108,6 +147,9 @@ function sessionKey(night, targetName) {
 module.exports = {
   nightFromFilename,
   nightFromDate,
+  targetFromFilename,
+  targetFromActivityLog,
+  sameTarget,
   isIsoDate,
   toNumber,
   round,
