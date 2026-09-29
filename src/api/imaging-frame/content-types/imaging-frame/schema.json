@@ -1,0 +1,71 @@
+{
+  "kind": "collectionType",
+  "collectionName": "imaging_frames",
+  "info": {
+    "singularName": "imaging-frame",
+    "pluralName": "imaging-frames",
+    "displayName": "Imaging Frame",
+    "description": "One saved light frame, recorded from the rig's currently-imaging push. The NINA filename is the idempotency key."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "filename": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "capturedAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "nightDate": {
+      "type": "date",
+      "required": true
+    },
+    "targetName": {
+      "type": "string"
+    },
+    "projectName": {
+      "type": "string"
+    },
+    "filter": {
+      "type": "string"
+    },
+    "exposureSeconds": {
+      "type": "integer"
+    },
+    "gain": {
+      "type": "integer"
+    },
+    "sensorTemperature": {
+      "type": "decimal"
+    },
+    "hfr": {
+      "type": "decimal"
+    },
+    "hfrStDev": {
+      "type": "decimal"
+    },
+    "stars": {
+      "type": "decimal"
+    },
+    "mean": {
+      "type": "decimal"
+    },
+    "median": {
+      "type": "decimal"
+    },
+    "stdDev": {
+      "type": "decimal"
+    },
+    "session": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::imaging-session.imaging-session",
+      "inversedBy": "frames"
+    }
+  }
+}
