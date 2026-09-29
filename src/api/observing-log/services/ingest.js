@@ -27,6 +27,8 @@ const {
   targetFromFilename,
   targetFromActivityLog,
   sameTarget,
+  hourInTimeZone,
+  inNightWindow,
   isIsoDate,
   toNumber,
   foldSummaries,
@@ -73,7 +75,12 @@ const CURRENTLY_IMAGING_POPULATE = [
 module.exports = ({ strapi }) => {
   const log = strapi.log;
   const timeZone = process.env.OBSERVING_LOG_TIMEZONE || 'America/Chicago';
-  const sampleMinutes = Number(process.env.OBSERVING_LOG_WEATHER_SAMPLE_MINUTES) || 10;
+  const sampleMinutes = Number(process.env.OBSERVING_LOG_WEATHER_SAMPLE_MINUTES) || 5;
+  // Local hours (in `timeZone`) between which weather is sampled even when
+  // no frame has been taken yet: generous enough to cover sunset..sunrise
+  // year-round; the website trims the display to the astronomical night.
+  const windowStart = clampHour(process.env.OBSERVING_LOG_WEATHER_WINDOW_START, 17);
+  const windowEnd = clampHour(process.env.OBSERVING_LOG_WEATHER_WINDOW_END, 9);
   const enabled = (process.env.OBSERVING_LOG_ENABLED || 'true') !== 'false';
 
   let queue = Promise.resolve();
@@ -276,9 +283,11 @@ module.exports = ({ strapi }) => {
   // ---------------------------------------------------------------------------
 
   /**
-   * Samples the weather-station reading into the current night's row, at
-   * most once per `sampleMinutes`. Only nights that already have a frame get
-   * samples, so the log does not fill up with rows for idle days.
+   * Samples the weather-station reading into the night's row, at most once
+   * per `sampleMinutes`. Inside the local night window the night row is
+   * created if it does not exist yet, so the hours before the first frame
+   * (and fully clouded-out nights) are recorded too. Outside the window only
+   * nights that already have a row get samples, so idle days stay empty.
    */
   async function sampleWeather(payload) {
     const weather = payload.environment && payload.environment.weather;
@@ -287,13 +296,17 @@ module.exports = ({ strapi }) => {
     const at = new Date(weather.timestamp);
     if (Number.isNaN(at.getTime())) return false;
 
-    const single = payload.preview && payload.preview.single;
-    const night =
-      nightFromFilename(single && single.filename) || nightFromDate(at, timeZone);
+    // The reading's own timestamp decides the night; the last frame's
+    // filename may be from a previous night when the rig is idle.
+    const night = nightFromDate(at, timeZone);
     if (!isIsoDate(night)) return false;
 
-    const nightDoc = await strapi.documents(UID.night).findFirst({ filters: { night } });
-    if (!nightDoc) return false;
+    const inWindow = inNightWindow(hourInTimeZone(at, timeZone), windowStart, windowEnd);
+    let nightDoc = await strapi.documents(UID.night).findFirst({ filters: { night } });
+    if (!nightDoc) {
+      if (!inWindow) return false;
+      nightDoc = await findOrCreateNight(night);
+    }
 
     if (nightDoc.lastWeatherAt) {
       const since = at.getTime() - new Date(nightDoc.lastWeatherAt).getTime();
@@ -349,6 +362,11 @@ module.exports = ({ strapi }) => {
       if (typeof v === 'string' && v.trim()) return v.trim();
     }
     return null;
+  }
+
+  function clampHour(value, fallback) {
+    const n = Number(value);
+    return Number.isInteger(n) && n >= 0 && n <= 23 ? n : fallback;
   }
 
   function intOrNull(value) {

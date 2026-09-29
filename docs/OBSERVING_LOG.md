@@ -48,9 +48,14 @@ The ingest:
 2. **Session** — find-or-create by `night|target`, then bump counts, per-filter
    totals, first/last frame and stat summaries.
 3. **Night** — find-or-create by date, then bump totals.
-4. **Weather** — if `environment.weather` is connected and the night row already
-   exists (i.e. at least one frame tonight), append a sample at most once every
-   `OBSERVING_LOG_WEATHER_SAMPLE_MINUTES` and fold it into `weatherSummary`.
+4. **Weather** — if `environment.weather` is connected, append a sample at most
+   once every `OBSERVING_LOG_WEATHER_SAMPLE_MINUTES` and fold it into
+   `weatherSummary`. The reading's own timestamp decides which night it belongs
+   to. Inside the local night window (`OBSERVING_LOG_WEATHER_WINDOW_START` to
+   `OBSERVING_LOG_WEATHER_WINDOW_END`, default 17:00-09:00) the night row is
+   created if needed, so the hours before the first frame and fully clouded-out
+   nights are recorded; a night with `frameCount` 0 is exactly that. Outside
+   the window only existing night rows are sampled, so idle days stay empty.
    Null readings (the station reports no cloud cover or SQM, for example) are
    skipped, not stored as zero.
 
@@ -64,7 +69,9 @@ are logged with the `[observing-log]` prefix.
 |---|---|---|
 | `OBSERVING_LOG_ENABLED` | `true` | Set to `false` to stop writing rows without redeploying code. |
 | `OBSERVING_LOG_TIMEZONE` | `America/Chicago` | Fallback night rollover timezone (SFRO). |
-| `OBSERVING_LOG_WEATHER_SAMPLE_MINUTES` | `10` | Minimum spacing between stored weather samples. |
+| `OBSERVING_LOG_WEATHER_SAMPLE_MINUTES` | `5` | Minimum spacing between stored weather samples (about 150 per night). |
+| `OBSERVING_LOG_WEATHER_WINDOW_START` | `17` | Local hour from which weather-only pushes may create a night row. |
+| `OBSERVING_LOG_WEATHER_WINDOW_END` | `9` | Local hour at which that window closes (next morning). |
 
 ## Reading it
 
@@ -78,6 +85,7 @@ Useful queries:
 
 ```
 /api/observing-nights?sort=night:desc&populate=sessions&pagination[pageSize]=30
+/api/observing-nights?filters[frameCount][$gt]=0&sort=night:desc   (nights with imaging only)
 /api/imaging-sessions?filters[nightDate][$eq]=2026-09-28&populate=frames
 /api/imaging-sessions?filters[targetName][$containsi]=trifid&sort=nightDate:asc
 ```
