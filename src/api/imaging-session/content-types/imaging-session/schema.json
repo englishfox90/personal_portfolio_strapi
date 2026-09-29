@@ -1,0 +1,75 @@
+{
+  "kind": "collectionType",
+  "collectionName": "imaging_sessions",
+  "info": {
+    "singularName": "imaging-session",
+    "pluralName": "imaging-sessions",
+    "displayName": "Imaging Session",
+    "description": "One target on one observing night. Aggregated from imaging frames by the observing-log ingest hook."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "sessionKey": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "nightDate": {
+      "type": "date",
+      "required": true
+    },
+    "night": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::observing-night.observing-night",
+      "inversedBy": "sessions"
+    },
+    "targetName": {
+      "type": "string",
+      "required": true
+    },
+    "projectName": {
+      "type": "string"
+    },
+    "ra": {
+      "type": "string"
+    },
+    "dec": {
+      "type": "string"
+    },
+    "firstFrameAt": {
+      "type": "datetime"
+    },
+    "lastFrameAt": {
+      "type": "datetime"
+    },
+    "frameCount": {
+      "type": "integer",
+      "default": 0
+    },
+    "integrationSeconds": {
+      "type": "integer",
+      "default": 0
+    },
+    "filters": {
+      "type": "json"
+    },
+    "stats": {
+      "type": "json"
+    },
+    "frames": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::imaging-frame.imaging-frame",
+      "mappedBy": "session"
+    },
+    "portfolioEntry": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::portfolio-entry.portfolio-entry"
+    }
+  }
+}

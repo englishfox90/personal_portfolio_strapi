@@ -1,0 +1,60 @@
+{
+  "kind": "collectionType",
+  "collectionName": "observing_nights",
+  "info": {
+    "singularName": "observing-night",
+    "pluralName": "observing-nights",
+    "displayName": "Observing Night",
+    "description": "One row per observing night, written automatically by the observing-log ingest hook. Holds the night's totals and the weather-station summary."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "night": {
+      "type": "date",
+      "required": true,
+      "unique": true
+    },
+    "timezone": {
+      "type": "string"
+    },
+    "firstFrameAt": {
+      "type": "datetime"
+    },
+    "lastFrameAt": {
+      "type": "datetime"
+    },
+    "frameCount": {
+      "type": "integer",
+      "default": 0
+    },
+    "integrationSeconds": {
+      "type": "integer",
+      "default": 0
+    },
+    "targetCount": {
+      "type": "integer",
+      "default": 0
+    },
+    "weatherSummary": {
+      "type": "json"
+    },
+    "weatherSamples": {
+      "type": "json"
+    },
+    "lastWeatherAt": {
+      "type": "datetime"
+    },
+    "notes": {
+      "type": "text"
+    },
+    "sessions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::imaging-session.imaging-session",
+      "mappedBy": "night"
+    }
+  }
+}
