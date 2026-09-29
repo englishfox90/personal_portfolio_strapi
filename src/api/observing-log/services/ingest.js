@@ -26,6 +26,7 @@ const {
   nightFromDate,
   targetFromFilename,
   targetFromActivityLog,
+  roofEventsFromActivityLog,
   sameTarget,
   hourInTimeZone,
   inNightWindow,
@@ -63,6 +64,7 @@ const WEATHER_METRICS = [
 const FRAME_STATS = ['hfr', 'hfrStDev', 'stars', 'mean', 'median', 'stdDev'];
 
 const MAX_WEATHER_SAMPLES = 300;
+const MAX_ROOF_EVENTS = 200;
 
 const CURRENTLY_IMAGING_POPULATE = [
   'target',
@@ -105,11 +107,12 @@ module.exports = ({ strapi }) => {
 
     const frameResult = await recordFrame(payload);
     const weatherResult = await sampleWeather(payload);
-    return { frame: frameResult, weather: weatherResult };
+    const roofResult = await recordRoof(payload);
+    return { frame: frameResult, weather: weatherResult, roof: roofResult };
   }
 
   function hasUsefulData(data) {
-    return Boolean(data && (data.preview || data.environment));
+    return Boolean(data && (data.preview || data.environment || data.activityLog || data.equipment));
   }
 
   async function loadPublished() {
@@ -335,6 +338,86 @@ module.exports = ({ strapi }) => {
       },
     });
     return true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Roof (safety monitor)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Records roof open/close transitions on the night row. Two sources:
+   * "Safety monitor: SAFE|UNSAFE" activity-log lines (present today), and a
+   * boolean `equipment.safetyMonitor.isSafe` if the sync tool starts sending
+   * one (a change of state against the last stored event is a transition).
+   * Events are deduplicated by timestamp; a night row is created inside the
+   * local night window, as for weather. Returns the number of events added.
+   */
+  async function recordRoof(payload) {
+    const fromLog = roofEventsFromActivityLog(payload.activityLog);
+
+    const monitor = payload.equipment && payload.equipment.safetyMonitor;
+    const stateAt = payload.metaData && payload.metaData.lastUpdated;
+    const hasState = monitor && typeof monitor.isSafe === 'boolean' && stateAt && !Number.isNaN(new Date(stateAt).getTime());
+
+    if (fromLog.length === 0 && !hasState) return 0;
+
+    // Group by night so a log spanning midnight lands on the right rows
+    const byNight = new Map();
+    for (const ev of fromLog) {
+      const night = nightFromDate(ev.t, timeZone);
+      if (!isIsoDate(night)) continue;
+      if (!byNight.has(night)) byNight.set(night, []);
+      byNight.get(night).push(ev);
+    }
+    if (hasState) {
+      const night = nightFromDate(stateAt, timeZone);
+      if (isIsoDate(night)) {
+        if (!byNight.has(night)) byNight.set(night, []);
+        byNight.get(night).push({ t: new Date(stateAt).toISOString(), safe: monitor.isSafe, fromState: true });
+      }
+    }
+
+    let added = 0;
+    for (const [night, events] of byNight) {
+      const inWindow = events.some((ev) => inNightWindow(hourInTimeZone(ev.t, timeZone), windowStart, windowEnd));
+      let nightDoc = await strapi.documents(UID.night).findFirst({ filters: { night } });
+      if (!nightDoc) {
+        if (!inWindow) continue;
+        nightDoc = await findOrCreateNight(night);
+      }
+
+      const existing = Array.isArray(nightDoc.roofEvents) ? [...nightDoc.roofEvents] : [];
+      const seen = new Set(existing.map((e) => e && e.t));
+      let lastSafe = existing.length > 0 ? existing[existing.length - 1].safe : nightDoc.lastRoofSafe;
+      let changed = false;
+
+      for (const ev of events) {
+        if (ev.fromState) {
+          // Only a change of state is an event; the first reading seeds the state
+          if (typeof lastSafe === 'boolean' && lastSafe === ev.safe) continue;
+          if (typeof lastSafe !== 'boolean' && existing.length === 0) {
+            lastSafe = ev.safe;
+            changed = true; // remember the seed state without an event
+            continue;
+          }
+        }
+        if (seen.has(ev.t)) continue;
+        existing.push({ t: ev.t, safe: ev.safe });
+        seen.add(ev.t);
+        lastSafe = ev.safe;
+        added += 1;
+        changed = true;
+      }
+
+      if (!changed) continue;
+      existing.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
+      if (existing.length > MAX_ROOF_EVENTS) existing.splice(0, existing.length - MAX_ROOF_EVENTS);
+      await strapi.documents(UID.night).update({
+        documentId: nightDoc.documentId,
+        data: { roofEvents: existing, lastRoofSafe: typeof lastSafe === 'boolean' ? lastSafe : null },
+      });
+    }
+    return added;
   }
 
   // ---------------------------------------------------------------------------
