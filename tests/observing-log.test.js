@@ -76,10 +76,26 @@ function makeFakeStrapi() {
   };
 
   const logs = { error: [], warn: [] };
+  const apiTokens = [];
+  const services = {
+    'admin::api-token': {
+      async list() {
+        return apiTokens.map((t) => ({ ...t, permissions: [...t.permissions] }));
+      },
+      async update(id, attrs) {
+        const token = apiTokens.find((t) => t.id === id);
+        if (!token) throw new Error(`no token ${id}`);
+        if (attrs.permissions) token.permissions = [...attrs.permissions];
+        return { ...token };
+      },
+    },
+  };
   return {
     documents,
     store,
     logs,
+    apiTokens,
+    service: (name) => services[name],
     log: {
       error: (m) => logs.error.push(m),
       warn: (m) => logs.warn.push(m),
@@ -568,4 +584,31 @@ test('rebuild derives projects from existing sessions, links them and seeds the 
   assert.equal(again.seeded, 0);
   assert.equal(rows[1].status, 'paused', 'admin edits survive a rebuild');
   assert.equal(rows[1].frameCount, 2, 'totals are recomputed, not doubled');
+});
+
+test('custom API tokens that read sessions are granted read on projects, once', async () => {
+  const strapi = makeFakeStrapi();
+  const projects = makeProjects({ strapi });
+  strapi.apiTokens.push(
+    { id: 1, name: 'website', type: 'custom', permissions: ['api::imaging-session.imaging-session.find', 'api::observing-night.observing-night.find'] },
+    { id: 2, name: 'other', type: 'custom', permissions: ['api::post.post.find'] },
+    { id: 3, name: 'full', type: 'full-access', permissions: [] }
+  );
+
+  assert.equal(await projects.grantTokenAccess(), 1);
+  assert.deepEqual(strapi.apiTokens[0].permissions, [
+    'api::imaging-session.imaging-session.find',
+    'api::observing-night.observing-night.find',
+    'api::imaging-project.imaging-project.find',
+    'api::imaging-project.imaging-project.findOne',
+  ]);
+  assert.deepEqual(strapi.apiTokens[1].permissions, ['api::post.post.find'], 'unrelated tokens are untouched');
+  assert.equal(await projects.grantTokenAccess(), 0, 'second run is a no-op');
+
+  // bootstrap survives the admin service being unavailable
+  await strapi.documents(projects.UID.project).create({ data: { name: 'x', slug: 'x', status: 'active' } });
+  strapi.service = () => { throw new Error('admin not ready'); };
+  assert.equal(await projects.bootstrap(), null, 'rows exist, so no rebuild either');
+  assert.equal(strapi.logs.error.length, 1);
+  assert.match(strapi.logs.error[0], /token grant failed/);
 });

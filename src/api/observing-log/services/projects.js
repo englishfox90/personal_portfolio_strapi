@@ -20,6 +20,10 @@ const UID = {
 const PAGE = 100;
 const MAX_PAGES = 200;
 
+/** Read access a token needs for the project pages, granted alongside the session read it already has */
+const SESSION_READ = 'api::imaging-session.imaging-session.find';
+const PROJECT_READ = ['api::imaging-project.imaging-project.find', 'api::imaging-project.imaging-project.findOne'];
+
 module.exports = ({ strapi }) => {
   const log = strapi.log;
 
@@ -130,17 +134,51 @@ module.exports = ({ strapi }) => {
   }
 
   /**
+   * A *custom* API token lists the routes it may call, so a new content type
+   * is invisible to it until someone adds the routes in Settings -> API
+   * Tokens. Any custom token that can already read imaging sessions is given
+   * find/findOne on imaging projects too, so the website's token keeps up
+   * without an admin visit. Full-access and read-only tokens need nothing.
+   */
+  async function grantTokenAccess() {
+    const tokens = await strapi.service('admin::api-token').list();
+    let granted = 0;
+    for (const token of tokens || []) {
+      if (token.type !== 'custom') continue;
+      const current = (Array.isArray(token.permissions) ? token.permissions : [])
+        .map((p) => (typeof p === 'string' ? p : p && p.action))
+        .filter(Boolean);
+      if (!current.includes(SESSION_READ)) continue;
+      const missing = PROJECT_READ.filter((p) => !current.includes(p));
+      if (missing.length === 0) continue;
+      await strapi.service('admin::api-token').update(token.id, {
+        name: token.name,
+        permissions: [...current, ...missing],
+      });
+      granted += 1;
+      log.info(`[observing-log] API token "${token.name}" granted read on imaging projects`);
+    }
+    return granted;
+  }
+
+  /**
    * Boot-time self-heal: the first deploy of the project type finds history
    * but no project rows, so derive them (with the seed). Set
    * OBSERVING_LOG_REBUILD_PROJECTS=true to force a rebuild on the next boot.
+   * Token access is checked on every boot; it is a no-op once granted.
    */
   async function bootstrap() {
+    try {
+      await grantTokenAccess();
+    } catch (err) {
+      log.error(`[observing-log] token grant failed: ${(err && err.message) || err}`);
+    }
     const force = (process.env.OBSERVING_LOG_REBUILD_PROJECTS || 'false') === 'true';
     const existing = await strapi.documents(UID.project).count();
     if (existing > 0 && !force) return null;
     return rebuild({ seed: existing === 0 });
   }
 
-  return { rebuild, bootstrap, loadSessions, UID };
+  return { rebuild, bootstrap, grantTokenAccess, loadSessions, UID };
 };
 
