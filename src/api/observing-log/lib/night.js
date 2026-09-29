@@ -80,6 +80,31 @@ function sameTarget(a, b) {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
+/** Hour of day (0-23) of `date` in `timeZone`; null if unparseable. */
+function hourInTimeZone(date, timeZone) {
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return null;
+  try {
+    const h = new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', hourCycle: 'h23' }).format(d);
+    const n = Number(h);
+    return Number.isFinite(n) ? n : null;
+  } catch {
+    return d.getUTCHours();
+  }
+}
+
+/**
+ * True when the local hour falls inside a window that may wrap midnight,
+ * e.g. start 17, end 9 covers 17:00 -> 08:59.
+ */
+function inNightWindow(hour, startHour, endHour) {
+  if (hour === null || hour === undefined) return false;
+  if (startHour === endHour) return true;
+  return startHour < endHour
+    ? hour >= startHour && hour < endHour
+    : hour >= startHour || hour < endHour;
+}
+
 function isIsoDate(value) {
   return typeof value === 'string' && ISO_DATE.test(value);
 }
@@ -150,6 +175,8 @@ module.exports = {
   targetFromFilename,
   targetFromActivityLog,
   sameTarget,
+  hourInTimeZone,
+  inNightWindow,
   isIsoDate,
   toNumber,
   round,

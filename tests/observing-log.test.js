@@ -216,7 +216,7 @@ test('re-sending the same frame is a no-op', async () => {
   const second = await ingest(payload);
 
   assert.equal(second.frame.created, false);
-  assert.equal(second.weather, false, 'weather within the sample window is skipped');
+  assert.equal(second.weather, false, 'weather within the sample interval is skipped');
   assert.equal(strapi.store.get(UID.frame).length, 1);
   assert.equal(strapi.store.get(UID.night)[0].frameCount, 1);
 });
@@ -240,7 +240,7 @@ test('frames accumulate per filter and weather samples respect the interval', as
   assert.equal(session.lastFrameAt, '2026-09-29T03:19:06.000Z');
 
   const nightRow = strapi.store.get(UID.night)[0];
-  // 03:05 sample, 03:14 skipped (<10 min), 03:19 stored (>10 min since 03:05)
+  // 03:05 stored, 03:14 stored (9 min later), 03:19 skipped (4.5 min after 03:14)
   assert.equal(nightRow.weatherSamples.length, 2);
   assert.equal(nightRow.weatherSummary.temperature.count, 2);
 });
@@ -257,17 +257,49 @@ test('two targets on one night become two sessions on one night row', async () =
   assert.equal(strapi.store.get(UID.session).length, 2);
 });
 
-test('a push with no frame and no known night stores nothing', async () => {
+test('a weather-only push inside the night window creates the night row', async () => {
   const strapi = makeFakeStrapi();
   const { ingest, UID } = makeIngest({ strapi });
 
+  // 02:00Z = 21:00 CDT on the 28th: inside the 17:00-09:00 window
   const payload = pushPayload({ seq: 1, capturedAt: '2026-09-29T02:00:00Z' });
   delete payload.preview;
 
   const result = await ingest(payload);
   assert.equal(result.frame, null);
+  assert.equal(result.weather, true);
+  const nights = strapi.store.get(UID.night);
+  assert.equal(nights.length, 1);
+  assert.equal(nights[0].night, '2026-09-28');
+  assert.equal(nights[0].frameCount, 0, 'a clouded-out night has a row but no frames');
+  assert.equal(nights[0].weatherSamples.length, 1);
+});
+
+test('a weather-only push outside the night window stores nothing', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  // 18:00Z = 13:00 CDT: daytime
+  const payload = pushPayload({ seq: 1, capturedAt: '2026-09-29T18:00:00Z' });
+  delete payload.preview;
+
+  const result = await ingest(payload);
   assert.equal(result.weather, false);
   assert.equal(strapi.store.get(UID.night).length, 0);
+});
+
+test('weather night comes from the reading, not a stale frame filename', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  // Frame from the night of the 28th...
+  await ingest(pushPayload({ seq: 1, capturedAt: '2026-09-29T03:00:00Z' }));
+  // ...still in the preview the next evening while the rig idles at 21:00 CDT on the 29th
+  const idle = pushPayload({ seq: 1, capturedAt: '2026-09-29T03:00:00Z', weatherAt: '2026-09-30T02:00:00Z' });
+  await ingest(idle);
+
+  const nights = strapi.store.get(UID.night).map((n) => n.night).sort();
+  assert.deepEqual(nights, ['2026-09-28', '2026-09-29']);
 });
 
 test('a frame pushed after the scheduler switched target stays with its own target', async () => {
