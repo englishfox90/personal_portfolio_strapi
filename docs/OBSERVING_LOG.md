@@ -14,7 +14,7 @@ overwritten.
 
 | Collection | Key | Holds |
 |---|---|---|
-| `observing-night` | `night` (date, unique) | Totals for the night (`frameCount`, `integrationSeconds`, `targetCount`, first/last frame), `weatherSummary` (per-metric min / max / mean / count), `weatherSamples` (array of readings, max 300), `timezone`, free-text `notes`. |
+| `observing-night` | `night` (date, unique) | Totals for the night (`frameCount`, `integrationSeconds`, `targetCount`, first/last frame), `weatherSummary` (per-metric min / max / mean / count), `weatherSamples` (array of readings, max 300), `roofEvents` (`[{ t, safe }]` roof transitions, max 200) and `lastRoofSafe`, `timezone`, free-text `notes`. |
 | `imaging-session` | `sessionKey` = `night|target` (unique) | One target on one night: `targetName`, `projectName`, `ra`, `dec`, `frameCount`, `integrationSeconds`, `filters` (`{ Red: { frames, seconds, exposureSeconds } }`), `stats` (HFR / stars / mean / median summaries), first/last frame. Relations: `night`, `frames`, optional one-way `portfolioEntry`. |
 | `imaging-frame` | `filename` (unique) | One saved light frame: `capturedAt`, `nightDate`, `targetName`, `filter`, `exposureSeconds`, `gain`, `sensorTemperature`, `hfr`, `hfrStDev`, `stars`, `mean`, `median`, `stdDev`. Relation: `session`. |
 
@@ -58,6 +58,14 @@ The ingest:
    the window only existing night rows are sampled, so idle days stay empty.
    Null readings (the station reports no cloud cover or SQM, for example) are
    skipped, not stored as zero.
+
+5. **Roof** — the site's safety monitor ("Building 8") is the building roof:
+   SAFE means open. Every `Safety monitor: SAFE|UNSAFE` activity-log line is
+   stored once (by timestamp) on the night's `roofEvents`. If the sync tool
+   sends `equipment.safetyMonitor.isSafe`, a change against the last stored
+   state is recorded as a transition too, stamped with `metaData.lastUpdated`.
+   The website turns the transitions into open/closed spans and roof-open
+   hours; state before the first transition of a night is inferred there.
 
 The ingest runs on an in-process queue, is never awaited by the request and
 never throws, so the rig's push latency and success are unaffected. Failures

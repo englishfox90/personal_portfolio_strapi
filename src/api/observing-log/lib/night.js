@@ -8,6 +8,7 @@
 const NIGHT_TOKEN = /_NIGHT_(\d{4}-\d{2}-\d{2})/;
 const SUBJECT_TOKEN = /_SUBJECT_(.+?)_NIGHT_/;
 const IMAGE_SAVED = /^Image saved:\s*(.+?)\s*\(/;
+const SAFETY_LINE = /^Safety monitor:\s*(SAFE|UNSAFE)\b/i;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
@@ -73,6 +74,24 @@ function targetFromActivityLog(activityLog, capturedAt, toleranceMs = 2000) {
     if (!Number.isNaN(et) && Math.abs(et - t) <= toleranceMs) return match[1].trim() || null;
   }
   return null;
+}
+
+/**
+ * Roof transitions from the activity log. The safety monitor at the site is
+ * the building roof: SAFE means open. Returns [{ t: ISO, safe }] oldest first.
+ */
+function roofEventsFromActivityLog(activityLog) {
+  if (!Array.isArray(activityLog)) return [];
+  const events = [];
+  for (const entry of activityLog) {
+    if (!entry || typeof entry.message !== 'string') continue;
+    const match = entry.message.match(SAFETY_LINE);
+    if (!match) continue;
+    const t = new Date(entry.timestamp);
+    if (Number.isNaN(t.getTime())) continue;
+    events.push({ t: t.toISOString(), safe: match[1].toUpperCase() === 'SAFE' });
+  }
+  return events.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
 }
 
 function sameTarget(a, b) {
@@ -174,6 +193,7 @@ module.exports = {
   nightFromDate,
   targetFromFilename,
   targetFromActivityLog,
+  roofEventsFromActivityLog,
   sameTarget,
   hourInTimeZone,
   inNightWindow,

@@ -10,6 +10,9 @@
     },
     "connected": {
       "type": "boolean"
+    },
+    "isSafe": {
+      "type": "boolean"
     }
   },
   "config": {}

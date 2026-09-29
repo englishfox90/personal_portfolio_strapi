@@ -364,6 +364,66 @@ test('falls back to the timezone rollover when the filename has no night token',
   assert.equal(strapi.store.get(UID.night)[0].night, '2026-09-28');
 });
 
+test('roof transitions from the activity log are stored once per timestamp', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  const first = pushPayload({ seq: 1, capturedAt: '2026-09-29T03:19:06Z' });
+  first.activityLog.push(
+    { timestamp: '2026-09-29T01:05:00Z', message: 'Safety monitor: SAFE', level: 'info' },
+    { timestamp: '2026-09-29T04:37:50.541Z', message: 'Safety monitor: UNSAFE', level: 'warning' }
+  );
+  const result = await ingest(first);
+  assert.equal(result.roof, 2);
+
+  // Same log again (the rig re-sends the last 25 lines on every push)
+  const again = await ingest(first);
+  assert.equal(again.roof, 0);
+
+  const night = strapi.store.get(UID.night)[0];
+  assert.deepEqual(night.roofEvents, [
+    { t: '2026-09-29T01:05:00.000Z', safe: true },
+    { t: '2026-09-29T04:37:50.541Z', safe: false },
+  ]);
+  assert.equal(night.lastRoofSafe, false);
+});
+
+test('a roof line alone creates the night row inside the window', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  const payload = pushPayload({ seq: 1, capturedAt: '2026-09-29T01:00:00Z' });
+  delete payload.preview;
+  delete payload.environment;
+  payload.activityLog = [{ timestamp: '2026-09-29T01:00:00Z', message: 'Safety monitor: SAFE', level: 'info' }];
+
+  const result = await ingest(payload);
+  assert.equal(result.roof, 1);
+  assert.equal(strapi.store.get(UID.night)[0].night, '2026-09-28');
+});
+
+test('an isSafe device state records only changes', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  const make = (at, safe) => {
+    const p = pushPayload({ seq: 1, capturedAt: at });
+    p.activityLog = [];
+    p.metaData.lastUpdated = at;
+    p.equipment = { safetyMonitor: { name: 'Building 8', connected: true, isSafe: safe } };
+    return p;
+  };
+
+  await ingest(make('2026-09-29T01:00:00Z', true)); // seeds the state, no event
+  await ingest(make('2026-09-29T01:05:00Z', true)); // unchanged
+  const closed = await ingest(make('2026-09-29T04:37:50Z', false)); // transition
+  assert.equal(closed.roof, 1);
+
+  const night = strapi.store.get(UID.night)[0];
+  assert.deepEqual(night.roofEvents, [{ t: '2026-09-29T04:37:50.000Z', safe: false }]);
+  assert.equal(night.lastRoofSafe, false);
+});
+
 test('enqueue never throws and logs failures', async () => {
   const strapi = makeFakeStrapi();
   strapi.documents = () => {
