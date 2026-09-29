@@ -116,7 +116,10 @@ Public REST routes exist for all four types (`/api/observing-nights`,
 `/api/imaging-sessions`, `/api/imaging-frames`, `/api/imaging-projects`) and
 follow the normal Strapi permission model. The website reads them with its
 server-side API token; if that token is a *custom* token, grant it `find` /
-`findOne` on the four types in Settings → API Tokens.
+`findOne` on the types in Settings → API Tokens. For `imaging-projects` this
+happens on its own: at boot, any custom token that can `find` imaging
+sessions is given `find` / `findOne` on imaging projects (logged as
+`[observing-log] API token "…" granted read on imaging projects`).
 
 Useful queries:
 
