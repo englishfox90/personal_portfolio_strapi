@@ -67,7 +67,13 @@ The ingest:
    nights are recorded; a night with `frameCount` 0 is exactly that. Outside
    the window only existing night rows are sampled, so idle days stay empty.
    Null readings (the station reports no cloud cover or SQM, for example) are
-   skipped, not stored as zero.
+   skipped, not stored as zero. The SFRO station's weather driver does not
+   implement cloud cover, so live pushes always carry `cloudCover: null` and
+   no `cloudCover` is ever stored for them; its `skyTemperature` is the cloud
+   sensor. The website derives a clear / thin cloud / overcast level from
+   `skyTemperature - temperature` (`components/observing-log/cloudModel.ts`)
+   and uses a stored `cloudCover` only when a night has one (backfilled
+   Open-Meteo samples may).
 
 5. **Roof** — the site's safety monitor ("Building 8") is the building roof:
    SAFE means open. Every `Safety monitor: SAFE|UNSAFE` activity-log line is
