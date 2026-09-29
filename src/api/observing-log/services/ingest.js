@@ -11,6 +11,7 @@
  *   imaging-frame    one per saved light frame (idempotent on NINA filename)
  *   imaging-session  one per target per observing night (aggregates)
  *   observing-night  one per night: totals + weather-station summary/samples
+ *   imaging-project  one per scheduler project: totals across every session
  *
  * Design rules:
  *  - Never throw into the rig's request. `enqueue()` swallows and logs.
@@ -37,12 +38,14 @@ const {
   latest,
   sessionKey,
 } = require('../lib/night');
+const { normaliseProjectName, slugify, bumpFilters, addTarget, foldSession, EMPTY_TOTALS } = require('../lib/project');
 
 const UID = {
   currentlyImaging: 'api::currently-imaging.currently-imaging',
   night: 'api::observing-night.observing-night',
   session: 'api::imaging-session.imaging-session',
   frame: 'api::imaging-frame.imaging-frame',
+  project: 'api::imaging-project.imaging-project',
 };
 
 const WEATHER_METRICS = [
@@ -188,7 +191,8 @@ module.exports = ({ strapi }) => {
       },
     });
 
-    await bumpSession(sessionDoc, { capturedAt, filter, exposureSeconds, stats, context });
+    const session = await bumpSession(sessionDoc, { capturedAt, filter, exposureSeconds, stats, context });
+    await bumpProject(session, { capturedAt, filter, exposureSeconds, targetName, context });
     await bumpNight(nightDoc, { capturedAt, exposureSeconds });
 
     return { created: true, documentId: frame.documentId, night, targetName };
@@ -212,7 +216,10 @@ module.exports = ({ strapi }) => {
 
   async function findOrCreateSession(nightDoc, night, targetName, context) {
     const key = sessionKey(night, targetName);
-    const found = await strapi.documents(UID.session).findFirst({ filters: { sessionKey: key } });
+    const found = await strapi.documents(UID.session).findFirst({
+      filters: { sessionKey: key },
+      populate: ['project'],
+    });
     if (found) return found;
 
     const created = await strapi.documents(UID.session).create({
@@ -266,6 +273,72 @@ module.exports = ({ strapi }) => {
     if (!sessionDoc.projectName && context.projectName) data.projectName = context.projectName;
 
     await strapi.documents(UID.session).update({ documentId: sessionDoc.documentId, data });
+    return { ...sessionDoc, ...data };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Projects
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Keeps the project row in step with its sessions. A session already linked
+   * to a project adds this one frame; a session not yet linked (its first
+   * frame, or the project name only arrived on a later push) is attached and
+   * folded in whole, so frames counted before the link are not lost.
+   */
+  async function bumpProject(session, { capturedAt, filter, exposureSeconds, targetName, context }) {
+    const linkedId = relationDocumentId(session.project);
+    if (linkedId) {
+      const project = await strapi.documents(UID.project).findOne({ documentId: linkedId });
+      if (!project) return null;
+      const iso = capturedAt.toISOString();
+      await strapi.documents(UID.project).update({
+        documentId: project.documentId,
+        data: {
+          frameCount: (toNumber(project.frameCount) || 0) + 1,
+          integrationSeconds: (toNumber(project.integrationSeconds) || 0) + exposureSeconds,
+          firstFrameAt: earliest(project.firstFrameAt, iso),
+          lastFrameAt: latest(project.lastFrameAt, iso),
+          filters: bumpFilters(project.filters, filter, exposureSeconds),
+          targetNames: addTarget(project.targetNames, targetName),
+        },
+      });
+      return { attached: false, documentId: project.documentId };
+    }
+
+    const name = normaliseProjectName(session.projectName || context.projectName);
+    if (!name) return null;
+    const project = await findOrCreateProject(name);
+    await strapi.documents(UID.project).update({
+      documentId: project.documentId,
+      data: foldSession(project, session),
+    });
+    await strapi.documents(UID.session).update({
+      documentId: session.documentId,
+      data: { project: project.documentId },
+    });
+    return { attached: true, documentId: project.documentId };
+  }
+
+  async function findOrCreateProject(name) {
+    const found = await strapi.documents(UID.project).findFirst({ filters: { name } });
+    if (found) return found;
+
+    const base = slugify(name);
+    let slug = base;
+    for (let n = 2; await strapi.documents(UID.project).findFirst({ filters: { slug }, fields: ['id'] }); n++) {
+      slug = `${base}-${n}`;
+    }
+    return strapi.documents(UID.project).create({
+      data: { name, slug, status: 'active', ...EMPTY_TOTALS },
+    });
+  }
+
+  /** A populated relation is an object, an unpopulated one may be an id string */
+  function relationDocumentId(value) {
+    if (!value) return null;
+    if (typeof value === 'string') return value;
+    return typeof value.documentId === 'string' ? value.documentId : null;
   }
 
   async function bumpNight(nightDoc, { capturedAt, exposureSeconds }) {
@@ -457,5 +530,5 @@ module.exports = ({ strapi }) => {
     return n === null ? null : Math.round(n);
   }
 
-  return { enqueue, ingest, UID, WEATHER_METRICS, FRAME_STATS };
+  return { enqueue, ingest, findOrCreateProject, UID, WEATHER_METRICS, FRAME_STATS };
 };

@@ -37,5 +37,14 @@ module.exports = {
    * This gives you an opportunity to set up your data model,
    * run jobs, or perform some special logic.
    */
-  bootstrap(/*{ strapi }*/) {},
+  async bootstrap({ strapi }) {
+    // Imaging projects are derived from sessions. On the first boot after the
+    // type is deployed there is history but no project rows, so build them
+    // (and apply the one-off portfolio seed). Never blocks startup on failure.
+    try {
+      await strapi.service('api::observing-log.projects').bootstrap();
+    } catch (err) {
+      strapi.log.error(`[observing-log] project bootstrap failed: ${(err && err.message) || err}`);
+    }
+  },
 };
