@@ -1,0 +1,22 @@
+{
+  "collectionName": "components_nina_data_sync_observatory_sky_objects",
+  "info": {
+    "displayName": "Observatory Sky Object"
+  },
+  "options": {},
+  "attributes": {
+    "condition": {
+      "type": "string"
+    },
+    "starsVisible": {
+      "type": "boolean"
+    },
+    "starCount": {
+      "type": "integer"
+    },
+    "moonVisible": {
+      "type": "boolean"
+    }
+  },
+  "config": {}
+}

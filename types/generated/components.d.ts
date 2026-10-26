@@ -91,6 +91,10 @@ export interface NinaDataSyncEnvironmentObject extends Struct.ComponentSchema {
     displayName: 'Environment Object';
   };
   attributes: {
+    observatory: Schema.Attribute.Component<
+      'nina-data-sync.observatory-object',
+      false
+    >;
     weather: Schema.Attribute.Component<'nina-data-sync.weather-object', false>;
   };
 }
@@ -184,6 +188,57 @@ export interface NinaDataSyncMetaObject extends Struct.ComponentSchema {
   attributes: {
     lastUpdated: Schema.Attribute.DateTime;
     ninaConnected: Schema.Attribute.Boolean;
+    source: Schema.Attribute.String;
+  };
+}
+
+export interface NinaDataSyncObservatoryObject extends Struct.ComponentSchema {
+  collectionName: 'components_nina_data_sync_observatory_objects';
+  info: {
+    displayName: 'Observatory Object';
+  };
+  attributes: {
+    imageAgeSeconds: Schema.Attribute.Decimal;
+    observingWindow: Schema.Attribute.Boolean;
+    observingWindowReason: Schema.Attribute.String;
+    roof: Schema.Attribute.Component<
+      'nina-data-sync.observatory-roof-object',
+      false
+    >;
+    sky: Schema.Attribute.Component<
+      'nina-data-sync.observatory-sky-object',
+      false
+    >;
+    source: Schema.Attribute.String;
+    stale: Schema.Attribute.Boolean;
+    updatedAt: Schema.Attribute.DateTime;
+    weatherSummary: Schema.Attribute.String;
+  };
+}
+
+export interface NinaDataSyncObservatoryRoofObject
+  extends Struct.ComponentSchema {
+  collectionName: 'components_nina_data_sync_observatory_roof_objects';
+  info: {
+    displayName: 'Observatory Roof Object';
+  };
+  attributes: {
+    confidence: Schema.Attribute.Decimal;
+    status: Schema.Attribute.String;
+  };
+}
+
+export interface NinaDataSyncObservatorySkyObject
+  extends Struct.ComponentSchema {
+  collectionName: 'components_nina_data_sync_observatory_sky_objects';
+  info: {
+    displayName: 'Observatory Sky Object';
+  };
+  attributes: {
+    condition: Schema.Attribute.String;
+    moonVisible: Schema.Attribute.Boolean;
+    starCount: Schema.Attribute.Integer;
+    starsVisible: Schema.Attribute.Boolean;
   };
 }
 
@@ -446,6 +501,9 @@ declare module '@strapi/strapi' {
       'nina-data-sync.exposure-plans-object': NinaDataSyncExposurePlansObject;
       'nina-data-sync.image-object': NinaDataSyncImageObject;
       'nina-data-sync.meta-object': NinaDataSyncMetaObject;
+      'nina-data-sync.observatory-object': NinaDataSyncObservatoryObject;
+      'nina-data-sync.observatory-roof-object': NinaDataSyncObservatoryRoofObject;
+      'nina-data-sync.observatory-sky-object': NinaDataSyncObservatorySkyObject;
       'nina-data-sync.preview-object': NinaDataSyncPreviewObject;
       'nina-data-sync.project-object': NinaDataSyncProjectObject;
       'nina-data-sync.single-object': NinaDataSyncSingleObject;
