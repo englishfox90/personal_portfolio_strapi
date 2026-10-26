@@ -10,6 +10,9 @@
     },
     "ninaConnected": {
       "type": "boolean"
+    },
+    "source": {
+      "type": "string"
     }
   },
   "config": {}
