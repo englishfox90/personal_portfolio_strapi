@@ -53,11 +53,14 @@ export interface NinaDataSyncAcquisitionObject extends Struct.ComponentSchema {
   };
   attributes: {
     activeFilter: Schema.Attribute.String;
+    byFilter: Schema.Attribute.JSON;
+    currentFrameIndex: Schema.Attribute.Integer;
     exposureSeconds: Schema.Attribute.Integer;
     gain: Schema.Attribute.Integer;
     startedAt: Schema.Attribute.DateTime;
     temperature: Schema.Attribute.Decimal;
     timestamp: Schema.Attribute.DateTime;
+    totalIntegrationSeconds: Schema.Attribute.Integer;
   };
 }
 
@@ -320,6 +323,7 @@ export interface NinaDataSyncTargetObject extends Struct.ComponentSchema {
     displayName: 'Target Object';
   };
   attributes: {
+    altitudeDeg: Schema.Attribute.Decimal;
     dec: Schema.Attribute.String;
     name: Schema.Attribute.String;
     ra: Schema.Attribute.String;
