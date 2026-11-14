@@ -8,7 +8,8 @@
  * Service middleware registered in `src/index.js` each time that document is
  * written, and turns the transient payload into durable rows:
  *
- *   imaging-frame    one per saved light frame (idempotent on NINA filename)
+ *   imaging-frame    one per saved light frame (idempotent on NINA filename,
+ *                    or a synthetic `seestar_<run>_<index>` for Seestar subs)
  *   imaging-session  one per target per observing night (aggregates)
  *   observing-night  one per night: totals + weather-station summary/samples
  *   imaging-project  one per scheduler project: totals across every session
@@ -28,6 +29,7 @@ const {
   targetFromFilename,
   targetFromActivityLog,
   roofEventsFromActivityLog,
+  roofOpenFromStatus,
   sameTarget,
   hourInTimeZone,
   inNightWindow,
@@ -68,13 +70,18 @@ const FRAME_STATS = ['hfr', 'hfrStDev', 'stars', 'mean', 'median', 'stdDev'];
 
 const MAX_WEATHER_SAMPLES = 300;
 const MAX_ROOF_EVENTS = 200;
+// Upper bound on subs one Seestar snapshot may add (a full night of 10 s subs
+// is ~4000); guards against a nonsense frame index.
+const MAX_SEESTAR_FRAME_INDEX = 5000;
 
 const CURRENTLY_IMAGING_POPULATE = [
   'target',
   'project',
   'acquisition',
+  'preview.stack',
   'preview.single.stats',
   'environment.weather',
+  'environment.observatory.roof',
 ];
 
 module.exports = ({ strapi }) => {
@@ -108,7 +115,7 @@ module.exports = ({ strapi }) => {
     const payload = hasUsefulData(data) ? data : await loadPublished();
     if (!payload) return { frame: null, weather: false };
 
-    const frameResult = await recordFrame(payload);
+    const frameResult = (await recordFrame(payload)) || (await recordSeestarSubs(payload));
     const weatherResult = await sampleWeather(payload);
     const roofResult = await recordRoof(payload);
     return { frame: frameResult, weather: weatherResult, roof: roofResult };
@@ -162,11 +169,90 @@ module.exports = ({ strapi }) => {
       firstString(payload.target && payload.target.name, stack.target) ||
       'Unknown target';
     const context = targetContext(payload, targetName);
-    const projectName = context.projectName;
     const exposureSeconds = Math.max(0, Math.round(toNumber(single.exposureSeconds) || 0));
     const filter = firstString(single.filter, acquisition.activeFilter) || 'Unknown';
     const stats = single.stats || {};
 
+    return storeFrame({ filename, capturedAt, night, targetName, context, filter, exposureSeconds, stats, acquisition });
+  }
+
+  /**
+   * Seestar (seestar_alp feed): the scope keeps no sub files, so the sync
+   * sends only the live stack plus `acquisition.currentFrameIndex`, the
+   * firmware's stacked-frame count for the current run. Every new index
+   * becomes one frame row named `seestar_<run start>_<index>`, so the
+   * existing unique-filename idempotency applies. Snapshots arrive about once
+   * a minute against 10-30 s subs, so the gap since the last stored index is
+   * backfilled, with capture times spread evenly between the previous frame
+   * (or the run start) and `acquisition.timestamp`, when the latest sub
+   * completed. Dropped subs are not in the stacked count and are not logged.
+   */
+  async function recordSeestarSubs(payload) {
+    const acquisition = payload.acquisition || {};
+    const index = intOrNull(acquisition.currentFrameIndex);
+    if (index === null || index < 1 || index > MAX_SEESTAR_FRAME_INDEX) return null;
+
+    const startedAt = new Date(acquisition.startedAt);
+    const lastAt = new Date(acquisition.timestamp);
+    if (Number.isNaN(startedAt.getTime()) || Number.isNaN(lastAt.getTime())) return null;
+    if (lastAt < startedAt) return null;
+
+    const stack = (payload.preview && payload.preview.stack) || {};
+    const targetName = firstString(payload.target && payload.target.name, stack.target);
+    if (!targetName) return null;
+    const exposureSeconds = Math.max(0, Math.round(toNumber(acquisition.exposureSeconds) || 0));
+    if (exposureSeconds === 0) return null;
+
+    const run = startedAt.toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+    const nameFor = (i) => `seestar_${run}_${String(i).padStart(4, '0')}`;
+    const findFrame = (i) =>
+      strapi.documents(UID.frame).findFirst({
+        filters: { filename: nameFor(i) },
+        fields: ['id', 'documentId', 'capturedAt'],
+      });
+
+    // Usual case: this index is already stored (repeat push, idle daytime push)
+    if (await findFrame(index)) return { created: false, frames: 0 };
+
+    // Stored frames for a run are always a contiguous 1..k, so find k by
+    // binary search rather than one lookup per index.
+    let lo = 0;
+    let hi = index;
+    while (hi - lo > 1) {
+      const mid = Math.floor((lo + hi) / 2);
+      if (await findFrame(mid)) lo = mid;
+      else hi = mid;
+    }
+    const previous = lo > 0 ? await findFrame(lo) : null;
+    const previousAt = previous && previous.capturedAt ? new Date(previous.capturedAt) : null;
+    const anchor = previousAt && previousAt > startedAt && previousAt < lastAt ? previousAt : startedAt;
+
+    const filter = firstString(acquisition.activeFilter, stack.filter) || 'Unknown';
+    const context = targetContext(payload, targetName);
+    const span = lastAt.getTime() - anchor.getTime();
+    const count = index - lo;
+    let last = null;
+    for (let i = lo + 1; i <= index; i++) {
+      const capturedAt = new Date(anchor.getTime() + Math.round((span * (i - lo)) / count));
+      const night = nightFromDate(capturedAt, timeZone);
+      if (!isIsoDate(night)) continue;
+      last = await storeFrame({
+        filename: nameFor(i),
+        capturedAt,
+        night,
+        targetName,
+        context,
+        filter,
+        exposureSeconds,
+        stats: {},
+        acquisition,
+      });
+    }
+    return last ? { ...last, frames: count } : null;
+  }
+
+  async function storeFrame({ filename, capturedAt, night, targetName, context, filter, exposureSeconds, stats, acquisition }) {
+    const projectName = context.projectName;
     const nightDoc = await findOrCreateNight(night);
     const sessionDoc = await findOrCreateSession(nightDoc, night, targetName, context);
 
@@ -414,23 +500,35 @@ module.exports = ({ strapi }) => {
   }
 
   // ---------------------------------------------------------------------------
-  // Roof (safety monitor)
+  // Roof
   // ---------------------------------------------------------------------------
 
   /**
    * Records roof open/close transitions on the night row. Two sources:
-   * "Safety monitor: SAFE|UNSAFE" activity-log lines (present today), and a
-   * boolean `equipment.safetyMonitor.isSafe` if the sync tool starts sending
-   * one (a change of state against the last stored event is a transition).
+   * activity-log lines ("Safety monitor: SAFE|UNSAFE" from NINA, "Roof
+   * open|closed" from PFR Sentinel), and a device state, either
+   * `equipment.safetyMonitor.isSafe` or `environment.observatory.roof.status`
+   * (a change of state against the last stored event is a transition).
    * Events are deduplicated by timestamp; a night row is created inside the
    * local night window, as for weather. Returns the number of events added.
    */
   async function recordRoof(payload) {
     const fromLog = roofEventsFromActivityLog(payload.activityLog);
 
+    // Device state: NINA's safety monitor `isSafe`, else the observatory roof
+    // status PFR Sentinel reports for the Seestar rig ("Open" / "Closed").
     const monitor = payload.equipment && payload.equipment.safetyMonitor;
-    const stateAt = payload.metaData && payload.metaData.lastUpdated;
-    const hasState = monitor && typeof monitor.isSafe === 'boolean' && stateAt && !Number.isNaN(new Date(stateAt).getTime());
+    const observatory = (payload.environment && payload.environment.observatory) || {};
+    const roofOpen = roofOpenFromStatus(observatory.roof && observatory.roof.status);
+    let stateSafe = null;
+    let stateAt = payload.metaData && payload.metaData.lastUpdated;
+    if (monitor && typeof monitor.isSafe === 'boolean') {
+      stateSafe = monitor.isSafe;
+    } else if (roofOpen !== null) {
+      stateSafe = roofOpen;
+      stateAt = observatory.updatedAt || stateAt;
+    }
+    const hasState = stateSafe !== null && stateAt && !Number.isNaN(new Date(stateAt).getTime());
 
     if (fromLog.length === 0 && !hasState) return 0;
 
@@ -446,7 +544,7 @@ module.exports = ({ strapi }) => {
       const night = nightFromDate(stateAt, timeZone);
       if (isIsoDate(night)) {
         if (!byNight.has(night)) byNight.set(night, []);
-        byNight.get(night).push({ t: new Date(stateAt).toISOString(), safe: monitor.isSafe, fromState: true });
+        byNight.get(night).push({ t: new Date(stateAt).toISOString(), safe: stateSafe, fromState: true });
       }
     }
 
