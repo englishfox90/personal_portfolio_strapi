@@ -1,7 +1,8 @@
 # Observing Log
 
 Durable history of what the rig imaged, built automatically from the
-`currently-imaging` pushes NINA already makes. Nothing on the rig changes.
+`currently-imaging` pushes NINA Data Sync already makes, from either the NINA
+rig or the Seestar. Nothing on the rig changes.
 
 ## Why
 
@@ -49,6 +50,24 @@ The ingest:
    same reason RA/Dec and project name are copied from the payload only when
    its current target matches the frame's target; otherwise they stay null and
    are filled by a later matching push.
+
+   **Seestar** (NINA Data Sync 1.2.12+, seestar_alp feed): the scope writes no
+   sub files, so `preview.single.filename` is empty and only the live stack is
+   sent. Instead, `acquisition.currentFrameIndex` (the firmware's
+   stacked-frame count for the current run) drives the log: each new index
+   becomes a frame row named `seestar_<acquisition.startedAt>_<index>`
+   (e.g. `seestar_20261114T053533Z_0042`), so the same unique-filename
+   idempotency applies and a restarted target (new `startedAt`) never collides
+   with an earlier run. Snapshots arrive about once a minute against 10-30 s
+   subs, so every index since the last stored one is backfilled; capture times
+   are spread evenly from the previous frame (or the run start) to
+   `acquisition.timestamp`, when the latest sub completed, so they are
+   estimates to within a snapshot interval. The target, RA/Dec and project come
+   from the payload, the filter from `acquisition.activeFilter`, the exposure
+   from `acquisition.exposureSeconds`. There are no per-sub stats (HFR, stars).
+   Subs the Seestar drops are not in the stacked count and are not logged. If
+   the log is deployed mid-run, or the sync keeps reporting the last run while
+   idle, the first snapshot it sees backfills that whole run.
 2. **Session** — find-or-create by `night|target`, then bump counts, per-filter
    totals, first/last frame and stat summaries.
 3. **Night** — find-or-create by date, then bump totals.
@@ -74,6 +93,10 @@ The ingest:
    stored once (by timestamp) on the night's `roofEvents`. If the sync tool
    sends `equipment.safetyMonitor.isSafe`, a change against the last stored
    state is recorded as a transition too, stamped with `metaData.lastUpdated`.
+   On the Seestar rig there is no safety monitor: PFR Sentinel reports the
+   roof instead, as `Roof open` / `Roof closed` activity-log lines (stored the
+   same way) and `environment.observatory.roof.status` (`Open` / `Closed`),
+   which is used as the device state, stamped with `observatory.updatedAt`.
    The website turns the transitions into open/closed spans and roof-open
    hours; state before the first transition of a night is inferred there.
 

@@ -612,3 +612,162 @@ test('custom API tokens that read sessions are granted read on projects, once', 
   assert.equal(strapi.logs.error.length, 1);
   assert.match(strapi.logs.error[0], /token grant failed/);
 });
+
+// ---------------------------------------------------------------------------
+// Seestar (seestar_alp feed): no sub files, only the live stack and a count
+// ---------------------------------------------------------------------------
+
+/** Shaped like the 14 Nov 2026 Sh2-171 snapshots from NINA Data Sync 1.2.12 */
+function seestarPayload({ index, at, startedAt = '2026-11-14T05:35:33.197Z', roof, activityLog = [] }) {
+  return {
+    metaData: { lastUpdated: at, ninaConnected: false },
+    activityLog,
+    acquisition: {
+      startedAt,
+      activeFilter: 'LP',
+      exposureSeconds: 30,
+      gain: 200,
+      temperature: null,
+      timestamp: at,
+      currentFrameIndex: index,
+      byFilter: { LP: { capturedFrames: 464 + index } },
+    },
+    target: { name: 'Sh2-171', ra: '00h 05m 04.6s', dec: "+67° 26' 25\"" },
+    environment: {
+      observatory: roof ? { source: 'PFR Sentinel', updatedAt: at, roof: { status: roof, confidence: 0.95 } } : undefined,
+    },
+    preview: {
+      type: 'stack',
+      stack: { frameCount: index, filter: 'LP', target: 'Sh2-171', updatedAtTime: at },
+      single: { filename: '', capturedAt: null },
+    },
+  };
+}
+
+test('roofOpenFromStatus reads Sentinel roof statuses', () => {
+  assert.equal(night.roofOpenFromStatus('Open'), true);
+  assert.equal(night.roofOpenFromStatus(' closed '), false);
+  assert.equal(night.roofOpenFromStatus('Moving'), null);
+  assert.equal(night.roofOpenFromStatus(undefined), null);
+});
+
+test('Seestar stacked-frame count becomes one frame row per sub, backfilling gaps', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  const first = await ingest(seestarPayload({ index: 3, at: '2026-11-14T05:37:03Z' }));
+  assert.equal(first.frame.frames, 3);
+  const second = await ingest(seestarPayload({ index: 5, at: '2026-11-14T05:38:03Z' }));
+  assert.equal(second.frame.frames, 2);
+
+  const frames = strapi.store.get(UID.frame);
+  assert.deepEqual(
+    frames.map((f) => f.filename),
+    [1, 2, 3, 4, 5].map((i) => `seestar_20261114T053533Z_000${i}`)
+  );
+  // Capture times are strictly increasing, after the run start, and end at the snapshot time
+  const times = frames.map((f) => new Date(f.capturedAt).getTime());
+  for (let i = 1; i < times.length; i++) assert.ok(times[i] > times[i - 1]);
+  assert.ok(times[0] > Date.parse('2026-11-14T05:35:33.197Z'));
+  assert.equal(frames[2].capturedAt, '2026-11-14T05:37:03.000Z');
+  assert.equal(frames[4].capturedAt, '2026-11-14T05:38:03.000Z');
+  assert.equal(frames[0].nightDate, '2026-11-13');
+  assert.equal(frames[0].filter, 'LP');
+  assert.equal(frames[0].exposureSeconds, 30);
+  assert.equal(frames[0].gain, 200);
+
+  const session = strapi.store.get(UID.session)[0];
+  assert.equal(session.sessionKey, '2026-11-13|sh2-171');
+  assert.equal(session.frameCount, 5);
+  assert.equal(session.integrationSeconds, 150);
+  assert.deepEqual(session.filters.LP, { frames: 5, seconds: 150, exposureSeconds: 30 });
+  assert.equal(session.ra, '00h 05m 04.6s');
+
+  const nightRow = strapi.store.get(UID.night)[0];
+  assert.equal(nightRow.frameCount, 5);
+  assert.equal(nightRow.integrationSeconds, 150);
+});
+
+test('repeated and idle Seestar snapshots add nothing', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  await ingest(seestarPayload({ index: 4, at: '2026-11-14T05:38:03Z' }));
+  const again = await ingest(seestarPayload({ index: 4, at: '2026-11-14T05:38:03Z' }));
+  assert.deepEqual(again.frame, { created: false, frames: 0 });
+  // Next afternoon the sync still reports last night's run while idle
+  const idle = await ingest(seestarPayload({ index: 4, at: '2026-11-14T05:38:03Z' }));
+  assert.deepEqual(idle.frame, { created: false, frames: 0 });
+  assert.equal(strapi.store.get(UID.frame).length, 4);
+  assert.equal(strapi.store.get(UID.session)[0].frameCount, 4);
+});
+
+test('a second Seestar run on the same target and night adds to the same session', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  await ingest(seestarPayload({ index: 2, at: '2026-11-14T05:37:00Z' }));
+  // Target restarted: the firmware count starts again from 1 under a new run start
+  await ingest(seestarPayload({ index: 3, at: '2026-11-14T06:12:00Z', startedAt: '2026-11-14T06:10:00Z' }));
+
+  assert.equal(strapi.store.get(UID.frame).length, 5);
+  assert.equal(strapi.store.get(UID.session).length, 1);
+  assert.equal(strapi.store.get(UID.session)[0].frameCount, 5);
+});
+
+test('Seestar snapshots without a usable count or target store no frames', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest } = makeIngest({ strapi });
+
+  const noIndex = seestarPayload({ index: 3, at: '2026-11-14T05:37:03Z' });
+  delete noIndex.acquisition.currentFrameIndex;
+  assert.equal((await ingest(noIndex)).frame, null);
+
+  const zero = seestarPayload({ index: 0, at: '2026-11-14T05:37:03Z' });
+  assert.equal((await ingest(zero)).frame, null);
+
+  const noTarget = seestarPayload({ index: 3, at: '2026-11-14T05:37:03Z' });
+  noTarget.target = {};
+  noTarget.preview.stack.target = null;
+  assert.equal((await ingest(noTarget)).frame, null);
+
+  assert.equal(strapi.store.get('api::imaging-frame.imaging-frame'), undefined);
+});
+
+test('NINA payloads with a sub filename never take the Seestar path', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  const payload = pushPayload({ seq: 1, capturedAt: '2026-09-29T03:19:06Z' });
+  payload.acquisition.currentFrameIndex = 40; // even if a count is present
+  await ingest(payload);
+  assert.equal(strapi.store.get(UID.frame).length, 1);
+});
+
+test('Sentinel "Roof open/closed" lines and roof status record transitions', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  // Evening: roof reported closed (seeds state), then opens with a log line
+  await ingest(seestarPayload({ index: 1, at: '2026-11-14T00:30:00Z', roof: 'Closed' }));
+  const opened = await ingest(
+    seestarPayload({
+      index: 1,
+      at: '2026-11-14T00:41:00Z',
+      roof: 'Open',
+      activityLog: [{ timestamp: '2026-11-14T00:40:12Z', message: 'Roof open', level: 'info' }],
+    })
+  );
+  assert.equal(opened.roof, 1); // the log line; the matching status is not a second event
+
+  // Status alone flips to closed (no log line in this snapshot)
+  const closed = await ingest(seestarPayload({ index: 1, at: '2026-11-14T06:59:43Z', roof: 'Closed' }));
+  assert.equal(closed.roof, 1);
+
+  const nightRow = strapi.store.get(UID.night).find((n) => n.night === '2026-11-13');
+  assert.deepEqual(nightRow.roofEvents, [
+    { t: '2026-11-14T00:40:12.000Z', safe: true },
+    { t: '2026-11-14T06:59:43.000Z', safe: false },
+  ]);
+  assert.equal(nightRow.lastRoofSafe, false);
+});

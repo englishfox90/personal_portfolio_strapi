@@ -9,6 +9,8 @@ const NIGHT_TOKEN = /_NIGHT_(\d{4}-\d{2}-\d{2})/;
 const SUBJECT_TOKEN = /_SUBJECT_(.+?)_NIGHT_/;
 const IMAGE_SAVED = /^Image saved:\s*(.+?)\s*\(/;
 const SAFETY_LINE = /^Safety monitor:\s*(SAFE|UNSAFE)\b/i;
+// PFR Sentinel (Seestar rig) logs the roof itself: "Roof open" / "Roof closed"
+const ROOF_LINE = /^Roof\s+(open|opened|closed)\b/i;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
@@ -77,21 +79,37 @@ function targetFromActivityLog(activityLog, capturedAt, toleranceMs = 2000) {
 }
 
 /**
- * Roof transitions from the activity log. The safety monitor at the site is
- * the building roof: SAFE means open. Returns [{ t: ISO, safe }] oldest first.
+ * Roof transitions from the activity log. Two line shapes: NINA's
+ * "Safety monitor: SAFE|UNSAFE" (the site's safety monitor is the building
+ * roof, SAFE means open) and PFR Sentinel's "Roof open|closed" from the
+ * Seestar rig. Returns [{ t: ISO, safe }] oldest first.
  */
 function roofEventsFromActivityLog(activityLog) {
   if (!Array.isArray(activityLog)) return [];
   const events = [];
   for (const entry of activityLog) {
     if (!entry || typeof entry.message !== 'string') continue;
-    const match = entry.message.match(SAFETY_LINE);
-    if (!match) continue;
+    const safety = entry.message.match(SAFETY_LINE);
+    const roof = safety ? null : entry.message.match(ROOF_LINE);
+    if (!safety && !roof) continue;
     const t = new Date(entry.timestamp);
     if (Number.isNaN(t.getTime())) continue;
-    events.push({ t: t.toISOString(), safe: match[1].toUpperCase() === 'SAFE' });
+    const safe = safety ? safety[1].toUpperCase() === 'SAFE' : roof[1].toLowerCase().startsWith('open');
+    events.push({ t: t.toISOString(), safe });
   }
   return events.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
+}
+
+/**
+ * Open/closed from an observatory roof status string (PFR Sentinel sends
+ * "Open" / "Closed"). Anything else (moving, unknown) is null.
+ */
+function roofOpenFromStatus(status) {
+  if (typeof status !== 'string') return null;
+  const s = status.trim().toLowerCase();
+  if (s === 'open' || s === 'opened') return true;
+  if (s === 'closed') return false;
+  return null;
 }
 
 function sameTarget(a, b) {
@@ -194,6 +212,7 @@ module.exports = {
   targetFromFilename,
   targetFromActivityLog,
   roofEventsFromActivityLog,
+  roofOpenFromStatus,
   sameTarget,
   hourInTimeZone,
   inNightWindow,
