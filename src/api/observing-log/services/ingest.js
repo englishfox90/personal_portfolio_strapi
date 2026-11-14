@@ -193,12 +193,24 @@ module.exports = ({ strapi }) => {
     const index = intOrNull(acquisition.currentFrameIndex);
     if (index === null || index < 1 || index > MAX_SEESTAR_FRAME_INDEX) return null;
 
-    const startedAt = new Date(acquisition.startedAt);
-    const lastAt = new Date(acquisition.timestamp);
-    if (Number.isNaN(startedAt.getTime()) || Number.isNaN(lastAt.getTime())) return null;
-    if (lastAt < startedAt) return null;
-
     const stack = (payload.preview && payload.preview.stack) || {};
+    const startedAt = validDate(acquisition.startedAt);
+    // When the latest sub completed. The sync stamps acquisition.timestamp
+    // only when it sees a new Stack event, so after a restart or reconnect it
+    // can be missing or stale; the stack's own update time, then the
+    // snapshot time, are the next best evidence. The first one at or after
+    // the run start wins (a stale value from before this run is useless).
+    const lastAt = [acquisition.timestamp, stack.updatedAtTime, payload.metaData && payload.metaData.lastUpdated]
+      .map(validDate)
+      .find((d) => d && startedAt && d >= startedAt);
+    if (!startedAt || !lastAt) {
+      warnOnce(
+        `seestar-time:${acquisition.startedAt}`,
+        `[observing-log] Seestar snapshot (frame ${index}) has no usable run start or frame time; subs not logged`
+      );
+      return null;
+    }
+
     const targetName = firstString(payload.target && payload.target.name, stack.target);
     if (!targetName) return null;
     const exposureSeconds = Math.max(0, Math.round(toNumber(acquisition.exposureSeconds) || 0));
@@ -610,6 +622,21 @@ module.exports = ({ strapi }) => {
       dec: firstString(target.dec),
       projectName: firstString(project.name),
     };
+  }
+
+  /** A Date for a real timestamp; null for null/empty/invalid (new Date(null) is 1970) */
+  function validDate(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  // Idle snapshots repeat every minute; say each problem once per process
+  const warned = new Set();
+  function warnOnce(key, message) {
+    if (warned.has(key)) return;
+    warned.add(key);
+    log.warn(message);
   }
 
   function firstString(...values) {

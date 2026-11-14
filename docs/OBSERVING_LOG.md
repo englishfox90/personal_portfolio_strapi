@@ -62,7 +62,12 @@ The ingest:
    subs, so every index since the last stored one is backfilled; capture times
    are spread evenly from the previous frame (or the run start) to
    `acquisition.timestamp`, when the latest sub completed, so they are
-   estimates to within a snapshot interval. The target, RA/Dec and project come
+   estimates to within a snapshot interval. The sync stamps that time only when it sees a
+   new Stack event, so when it is missing (after a sync restart) or older than
+   the run start, `preview.stack.updatedAtTime` and then
+   `metaData.lastUpdated` are used; a snapshot with none of them logs a
+   warning once and is skipped. `currentFrameIndex` is the firmware's total
+   frame count where it reports one, so dropped subs are counted live. The target, RA/Dec and project come
    from the payload, the filter from `acquisition.activeFilter`, the exposure
    from `acquisition.exposureSeconds`. There are no per-sub stats (HFR, stars).
    Subs the Seestar drops are not in the stacked count and are not logged. If

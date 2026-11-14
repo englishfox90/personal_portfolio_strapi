@@ -851,3 +851,30 @@ test('backfill counts real subs in the window even when logged under another nam
   assert.equal(sh2.frameCount, 7);
   assert.equal(strapi.store.get(UID.night)[0].frameCount, 8);
 });
+
+test('a Seestar snapshot without acquisition.timestamp falls back to the stack time', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  // Idle after a sync restart: counts kept, but no Stack event seen since
+  const p = seestarPayload({ index: 4, at: '2026-11-14T06:59:40Z' });
+  p.acquisition.timestamp = null;
+  p.metaData.lastUpdated = '2026-11-14T23:30:00Z';
+  const result = await ingest(p);
+  assert.equal(result.frame.frames, 4);
+  const frames = strapi.store.get(UID.frame);
+  assert.equal(frames[3].capturedAt, '2026-11-14T06:59:40.000Z'); // stack.updatedAtTime
+});
+
+test('a Seestar snapshot with no usable time logs nothing and warns once', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest } = makeIngest({ strapi });
+
+  const p = seestarPayload({ index: 4, at: '2026-11-14T06:59:40Z' });
+  p.acquisition.timestamp = null;
+  p.preview.stack.updatedAtTime = null;
+  p.metaData.lastUpdated = '2026-11-14T05:00:00Z'; // before the run started
+  assert.equal((await ingest(p)).frame, null);
+  assert.equal((await ingest(p)).frame, null);
+  assert.equal(strapi.logs.warn.filter((m) => /no usable run start/.test(m)).length, 1);
+});
