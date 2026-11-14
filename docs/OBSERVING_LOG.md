@@ -173,3 +173,25 @@ node --test tests/
 
 `tests/observing-log.test.js` drives the ingest against an in-memory stand-in
 for `strapi.documents()` using a trimmed copy of a real rig push.
+
+## Backfill of pre-1.2.12 Seestar runs
+
+NINA Data Sync 1.2.11 (28 Oct - 14 Nov 2026) sent no frame count, so those
+Seestar nights were logged only partly or not at all.
+`data/observing-log/seestar-backfill.json` lists every finished run from that
+period (target, start/end UTC, stacked frame count, filter, exposure, gain,
+plate-solved RA/Dec), compiled from the Seestar's saved stacks and the sync
+logs. On boot, `src/index.js` replays the file in the background through
+`ingest.enqueueBackfill`, which feeds each run through the live Seestar path
+as one synthetic snapshot:
+
+- Rows are `seestar_<startedAt>_<index>`, so replaying (every boot) adds nothing.
+- Real subs already logged inside a run's time window (±1 min, any target
+  name, since 1.2.11 sometimes logged a sub under the next target) are
+  subtracted from the run's count, and the run takes the name those subs were
+  logged under so it stays one session.
+- Capture times are spread evenly across the run window; where the rig only
+  knew the stack's end, `startedAt` is end minus total exposure.
+- Each run's result is logged as `[observing-log] backfill {...}`.
+
+The file can be deleted once the results are confirmed; nothing else reads it.

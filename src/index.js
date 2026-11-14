@@ -1,5 +1,8 @@
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
+
 const CURRENTLY_IMAGING_UID = 'api::currently-imaging.currently-imaging';
 const INGEST_ACTIONS = new Set(['create', 'update', 'publish']);
 
@@ -45,6 +48,25 @@ module.exports = {
       await strapi.service('api::observing-log.projects').bootstrap();
     } catch (err) {
       strapi.log.error(`[observing-log] project bootstrap failed: ${(err && err.message) || err}`);
+    }
+
+    // One-off history: Seestar runs imaged before the sync sent a frame count.
+    // Idempotent (replaying a run adds nothing), so the file can stay until a
+    // later cleanup. Runs in the background so startup and healthcheck are not held.
+    try {
+      const file = path.join(__dirname, '..', 'data', 'observing-log', 'seestar-backfill.json');
+      if (fs.existsSync(file)) {
+        const runs = JSON.parse(fs.readFileSync(file, 'utf8'));
+        strapi
+          .service('api::observing-log.ingest')
+          .enqueueBackfill(runs)
+          .then((results) => {
+            for (const r of results) strapi.log.info(`[observing-log] backfill ${JSON.stringify(r)}`);
+          })
+          .catch((err) => strapi.log.error(`[observing-log] backfill failed: ${(err && err.message) || err}`));
+      }
+    } catch (err) {
+      strapi.log.error(`[observing-log] backfill not started: ${(err && err.message) || err}`);
     }
   },
 };

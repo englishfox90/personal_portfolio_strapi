@@ -771,3 +771,83 @@ test('Sentinel "Roof open/closed" lines and roof status record transitions', asy
   ]);
   assert.equal(nightRow.lastRoofSafe, false);
 });
+
+// ---------------------------------------------------------------------------
+// Backfill of finished Seestar runs (pre-1.2.12 history)
+// ---------------------------------------------------------------------------
+
+test('backfill replays a finished run once and subtracts real subs already logged', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, backfillRuns, UID } = makeIngest({ strapi });
+
+  // 1.2.11 uploaded two real subs of this target mid-run
+  for (const [seq, at] of [[1, '2026-11-13T07:35:27Z'], [2, '2026-11-13T07:36:55Z']]) {
+    const p = pushPayload({ seq, capturedAt: at, target: 'SH2-171', filter: 'LP' });
+    p.preview.single.filename = `seestar-sub-${seq}.jpg`;
+    p.preview.single.exposureSeconds = 30;
+    await ingest(p);
+  }
+
+  const run = {
+    target: 'Sh2-171',
+    startedAt: '2026-11-13T07:20:00Z',
+    endedAt: '2026-11-13T08:15:00Z',
+    frames: 100,
+    filter: 'LP',
+    exposureSeconds: 30,
+    gain: 200,
+    ra: '00h 05m 04.6s',
+    dec: "+67° 26' 25\"",
+  };
+  const [first] = await backfillRuns([run]);
+  assert.deepEqual(first, { target: 'SH2-171', startedAt: '2026-11-13T07:20:00.000Z', overlap: 2, added: 98 });
+
+  const [again] = await backfillRuns([run]);
+  assert.equal(again.added, 0);
+
+  const session = strapi.store.get(UID.session).find((s) => s.sessionKey === '2026-11-12|sh2-171');
+  assert.equal(session.frameCount, 100);
+  assert.equal(session.integrationSeconds, 100 * 30);
+  assert.equal(strapi.store.get(UID.frame).filter((f) => f.filename.startsWith('seestar_')).length, 98);
+});
+
+test('backfill skips invalid runs and keeps going', async () => {
+  const strapi = makeFakeStrapi();
+  const { backfillRuns } = makeIngest({ strapi });
+
+  const results = await backfillRuns([
+    { target: 'NGC 7000', startedAt: 'nope', endedAt: '2026-11-12T03:00:00Z', frames: 50, filter: 'LP', exposureSeconds: 30 },
+    { target: 'NGC 6960', startedAt: '2026-11-12T03:00:00Z', endedAt: '2026-11-12T04:40:00Z', frames: 195, filter: 'LP', exposureSeconds: 30 },
+  ]);
+  assert.equal(results[0].skipped, 'invalid');
+  assert.equal(results[1].added, 195);
+});
+
+test('backfill counts real subs in the window even when logged under another name', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, backfillRuns, UID } = makeIngest({ strapi });
+
+  // 4 Nov: five subs logged as SH2-157, one mis-attributed to the next target
+  const subs = [
+    ['SH2-157', '2026-11-05T02:53:00Z'],
+    ['SH2-157', '2026-11-05T02:54:00Z'],
+    ['SH2-157', '2026-11-05T02:56:00Z'],
+    ['SH2-157', '2026-11-05T02:57:00Z'],
+    ['SH2-157', '2026-11-05T02:58:00Z'],
+    ['Eastern Veil (NGC 6992)', '2026-11-05T02:59:30Z'],
+  ];
+  for (const [i, [target, at]] of subs.entries()) {
+    const p = pushPayload({ seq: i + 1, capturedAt: at, target, filter: 'LP' });
+    p.preview.single.filename = `sub-${i}.jpg`;
+    p.preview.single.exposureSeconds = 30;
+    await ingest(p);
+  }
+
+  const [r] = await backfillRuns([
+    { target: 'Sh2-157', startedAt: '2026-11-05T02:52:30Z', endedAt: '2026-11-05T02:59:36Z', frames: 8, filter: 'LP', exposureSeconds: 30, gain: 200 },
+  ]);
+  assert.deepEqual(r, { target: 'SH2-157', startedAt: '2026-11-05T02:52:30.000Z', overlap: 6, added: 2 });
+  const sh2 = strapi.store.get(UID.session).find((s) => s.sessionKey === '2026-11-04|sh2-157');
+  assert.equal(sh2.frameCount, 7);
+  assert.equal(strapi.store.get(UID.night)[0].frameCount, 8);
+});
