@@ -73,6 +73,7 @@ const MAX_ROOF_EVENTS = 200;
 // Upper bound on subs one Seestar snapshot may add (a full night of 10 s subs
 // is ~4000); guards against a nonsense frame index.
 const MAX_SEESTAR_FRAME_INDEX = 5000;
+const BACKFILL_SLACK_MS = 60 * 1000;
 
 const CURRENTLY_IMAGING_POPULATE = [
   'target',
@@ -628,5 +629,100 @@ module.exports = ({ strapi }) => {
     return n === null ? null : Math.round(n);
   }
 
-  return { enqueue, ingest, findOrCreateProject, UID, WEATHER_METRICS, FRAME_STATS };
+  // ---------------------------------------------------------------------------
+  // Backfill
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Replays finished Seestar runs that were imaged before the live feed sent
+   * a frame count (NINA Data Sync 1.2.11). Each run
+   * `{ target, startedAt, endedAt, frames, filter, exposureSeconds, gain?, ra?, dec?, project? }`
+   * goes through the live Seestar path as one synthetic snapshot, so it gets
+   * the same `seestar_<startedAt>_<index>` rows and is idempotent: replaying
+   * it adds nothing. Frames the log already holds for that target inside the
+   * run's window (1.2.11 uploaded a few real subs) are subtracted so they are
+   * not counted twice. Serialised on the ingest queue; never throws.
+   */
+  async function backfillRuns(runs) {
+    const results = [];
+    for (const run of Array.isArray(runs) ? runs : []) {
+      try {
+        results.push(await backfillRun(run));
+      } catch (err) {
+        log.error(`[observing-log] backfill of ${run && run.target} failed: ${(err && err.message) || err}`);
+        results.push({ target: run && run.target, error: true });
+      }
+    }
+    return results;
+  }
+
+  async function backfillRun(run) {
+    const startedAt = new Date(run.startedAt);
+    const endedAt = new Date(run.endedAt);
+    const frames = intOrNull(run.frames);
+    if (!run.target || Number.isNaN(startedAt.getTime()) || Number.isNaN(endedAt.getTime()) || !frames) {
+      return { target: run.target || null, skipped: 'invalid' };
+    }
+
+    // Real subs already logged during the run. The scope images one thing at a
+    // time, so match on the time window alone: 1.2.11 logged them under name
+    // variants ("SH2-157", "M 31 (mosaic)") and sometimes under the next
+    // target. A minute of slack covers save-time vs exposure-end skew.
+    const from = startedAt.getTime() - BACKFILL_SLACK_MS;
+    const to = endedAt.getTime() + BACKFILL_SLACK_MS;
+    const nights = new Set([nightFromDate(startedAt, timeZone), nightFromDate(endedAt, timeZone)]);
+    const real = [];
+    for (const nightDate of nights) {
+      const rows = await strapi.documents(UID.frame).findMany({
+        filters: { nightDate },
+        fields: ['filename', 'targetName', 'capturedAt'],
+        limit: 10000,
+      });
+      for (const f of rows) {
+        if (!f || String(f.filename).startsWith('seestar_')) continue;
+        const t = new Date(f.capturedAt).getTime();
+        if (t >= from && t <= to) real.push(f);
+      }
+    }
+    const overlap = real.length;
+    const count = frames - overlap;
+    if (count < 1) return { target: run.target, skipped: 'already logged', overlap };
+
+    // Keep one session per run: reuse the name the real subs were logged under
+    const targetName = overlap > 0 ? mostCommon(real.map((f) => f.targetName)) || run.target : run.target;
+
+    const result = await recordSeestarSubs({
+      acquisition: {
+        startedAt: startedAt.toISOString(),
+        timestamp: endedAt.toISOString(),
+        currentFrameIndex: count,
+        activeFilter: run.filter || null,
+        exposureSeconds: run.exposureSeconds,
+        gain: run.gain === undefined ? null : run.gain,
+      },
+      target: { name: targetName, ra: run.ra || null, dec: run.dec || null },
+      project: run.project ? { name: run.project } : {},
+      preview: { type: 'stack', stack: {} },
+    });
+    return { target: targetName, startedAt: startedAt.toISOString(), overlap, added: result ? result.frames : 0 };
+  }
+
+  function mostCommon(values) {
+    const counts = new Map();
+    for (const v of values) if (typeof v === 'string' && v.trim()) counts.set(v, (counts.get(v) || 0) + 1);
+    let best = null;
+    for (const [v, n] of counts) if (best === null || n > counts.get(best)) best = v;
+    return best;
+  }
+
+  /** Runs the backfill on the ingest queue so it never races live pushes */
+  function enqueueBackfill(runs) {
+    const done = queue.then(() => backfillRuns(runs));
+    queue = done.catch((err) => {
+      log.error(`[observing-log] backfill failed: ${(err && err.message) || err}`);
+    });
+    return done;
+  }
+
+  return { enqueue, ingest, backfillRuns, enqueueBackfill, findOrCreateProject, UID, WEATHER_METRICS, FRAME_STATS };
 };
