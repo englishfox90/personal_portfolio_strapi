@@ -429,7 +429,7 @@ module.exports = ({ strapi }) => {
       slug = `${base}-${n}`;
     }
     return strapi.documents(UID.project).create({
-      data: { name, slug, status: 'active', ...EMPTY_TOTALS },
+      data: { name, slug, projectStatus: 'active', ...EMPTY_TOTALS },
     });
   }
 

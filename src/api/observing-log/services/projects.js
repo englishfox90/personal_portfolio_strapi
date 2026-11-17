@@ -61,7 +61,7 @@ module.exports = ({ strapi }) => {
       slug = `${base}-${n}`;
     }
     const doc = await strapi.documents(UID.project).create({
-      data: { name, slug, status: 'active', ...EMPTY_TOTALS },
+      data: { name, slug, projectStatus: 'active', ...EMPTY_TOTALS },
     });
     created.add(doc.documentId);
     return doc;
@@ -111,7 +111,7 @@ module.exports = ({ strapi }) => {
         const ids = await portfolioIds(portfolioSeed[name]);
         if (ids.length > 0) {
           data.portfolioEntries = ids;
-          data.status = 'complete';
+          data.projectStatus = 'complete';
           seeded += 1;
         }
       }
