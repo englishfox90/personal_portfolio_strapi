@@ -7,6 +7,7 @@
  */
 
 const { createCoreController } = require('@strapi/strapi').factories;
+const { incrementCounter } = require('../../../utils/increment-counter');
 
 module.exports = createCoreController('api::portfolio-entry.portfolio-entry', ({ strapi }) => ({
   /**
@@ -21,37 +22,25 @@ module.exports = createCoreController('api::portfolio-entry.portfolio-entry', ({
     }
 
     try {
-      // Find the portfolio entry
-      const entry = await strapi.documents('api::portfolio-entry.portfolio-entry').findOne({
-        documentId: id,
-      });
+      // Never publish here - see src/utils/increment-counter.js
+      const result = await incrementCounter(strapi, 'api::portfolio-entry.portfolio-entry', id, 'views', ['title']);
 
-      if (!entry) {
+      if (!result) {
         return ctx.notFound('Portfolio entry not found');
       }
 
-      // Increment the view count
-      const currentViews = entry.views || 0;
-      const updated = await strapi.documents('api::portfolio-entry.portfolio-entry').update({
-        documentId: id,
-        data: {
-          views: currentViews + 1,
-        },
-        status: 'published', // Ensure changes are published immediately
-      });
-
-      strapi.log.debug(`View count incremented for portfolio "${entry.title}": ${currentViews} -> ${currentViews + 1}`);
+      strapi.log.debug(`View count incremented for "${result.row.title}": ${result.previous} -> ${result.value}`);
 
       return ctx.send({
         data: {
-          id: updated.id,
-          documentId: updated.documentId,
-          title: updated.title,
-          views: updated.views,
+          id: result.id,
+          documentId: result.documentId,
+          title: result.row.title,
+          views: result.value,
         },
         meta: {
-          previousCount: currentViews,
-          newCount: updated.views,
+          previousCount: result.previous,
+          newCount: result.value,
         },
       });
     } catch (error) {
