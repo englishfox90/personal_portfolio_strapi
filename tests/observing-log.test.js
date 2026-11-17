@@ -486,7 +486,7 @@ test('first frame creates the project and links the session', async () => {
   assert.equal(projects.length, 1);
   assert.equal(projects[0].name, 'M8 M20 Duo');
   assert.equal(projects[0].slug, 'm8-m20-duo');
-  assert.equal(projects[0].status, 'active');
+  assert.equal(projects[0].projectStatus, 'active');
   assert.equal(projects[0].frameCount, 2, 'the attach folds the first frame, the second bumps');
   assert.equal(projects[0].integrationSeconds, 480);
   assert.equal(projects[0].sessionCount, 1);
@@ -566,10 +566,10 @@ test('rebuild derives projects from existing sessions, links them and seeds the 
 
   const rows = strapi.store.get(UID.project).sort((a, b) => a.name.localeCompare(b.name));
   assert.equal(rows[0].name, 'Andromeda Galaxy');
-  assert.equal(rows[0].status, 'active');
+  assert.equal(rows[0].projectStatus, 'active');
   assert.equal(rows[0].portfolioEntries, undefined);
   assert.equal(rows[1].name, 'The Butterfly Nebula');
-  assert.equal(rows[1].status, 'complete');
+  assert.equal(rows[1].projectStatus, 'complete');
   assert.deepEqual(rows[1].portfolioEntries, [strapi.store.get(projects.UID.portfolio)[0].documentId]);
   assert.equal(rows[1].frameCount, 2);
   assert.equal(rows[1].sessionCount, 1);
@@ -578,11 +578,11 @@ test('rebuild derives projects from existing sessions, links them and seeds the 
 
   // Once rows exist the bootstrap is a no-op, and a forced rebuild never re-seeds
   assert.equal(await projects.bootstrap(), null);
-  await strapi.documents(UID.project).update({ documentId: rows[1].documentId, data: { status: 'paused', portfolioEntries: [] } });
+  await strapi.documents(UID.project).update({ documentId: rows[1].documentId, data: { projectStatus: 'paused', portfolioEntries: [] } });
   const again = await projects.rebuild({ seed: true });
   assert.equal(again.created, 0);
   assert.equal(again.seeded, 0);
-  assert.equal(rows[1].status, 'paused', 'admin edits survive a rebuild');
+  assert.equal(rows[1].projectStatus, 'paused', 'admin edits survive a rebuild');
   assert.equal(rows[1].frameCount, 2, 'totals are recomputed, not doubled');
 });
 
@@ -606,7 +606,7 @@ test('custom API tokens that read sessions are granted read on projects, once', 
   assert.equal(await projects.grantTokenAccess(), 0, 'second run is a no-op');
 
   // bootstrap survives the admin service being unavailable
-  await strapi.documents(projects.UID.project).create({ data: { name: 'x', slug: 'x', status: 'active' } });
+  await strapi.documents(projects.UID.project).create({ data: { name: 'x', slug: 'x', projectStatus: 'active' } });
   strapi.service = () => { throw new Error('admin not ready'); };
   assert.equal(await projects.bootstrap(), null, 'rows exist, so no rebuild either');
   assert.equal(strapi.logs.error.length, 1);

@@ -22,7 +22,7 @@
       "targetField": "name",
       "required": true
     },
-    "status": {
+    "projectStatus": {
       "type": "enumeration",
       "enum": ["active", "complete", "paused", "abandoned"],
       "default": "active",

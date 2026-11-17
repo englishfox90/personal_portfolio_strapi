@@ -18,7 +18,7 @@ overwritten.
 | `observing-night` | `night` (date, unique) | Totals for the night (`frameCount`, `integrationSeconds`, `targetCount`, first/last frame), `weatherSummary` (per-metric min / max / mean / count), `weatherSamples` (array of readings, max 300), `roofEvents` (`[{ t, safe }]` roof transitions, max 200) and `lastRoofSafe`, `timezone`, free-text `notes`. |
 | `imaging-session` | `sessionKey` = `night|target` (unique) | One target on one night: `targetName`, `projectName`, `ra`, `dec`, `frameCount`, `integrationSeconds`, `filters` (`{ Red: { frames, seconds, exposureSeconds } }`), `stats` (HFR / stars / mean / median summaries), first/last frame. Relations: `night`, `frames`, optional one-way `portfolioEntry`. |
 | `imaging-frame` | `filename` (unique) | One saved light frame: `capturedAt`, `nightDate`, `targetName`, `filter`, `exposureSeconds`, `gain`, `sensorTemperature`, `hfr`, `hfrStDev`, `stars`, `mean`, `median`, `stdDev`. Relation: `session`. |
-| `imaging-project` | `name` (unique; the scheduler's project name) | One Target Scheduler project across every night and target (mosaic panels are targets of one project): `slug`, `status` (`active` / `complete` / `paused` / `abandoned`), `notes`, `targetNames`, `frameCount`, `integrationSeconds`, `sessionCount`, `filters` (same shape as a session's), first/last frame. Relations: `sessions`, `portfolioEntries` (many-to-many with `portfolio-entry`, which sees it as `imaging_projects`). |
+| `imaging-project` | `name` (unique; the scheduler's project name) | One Target Scheduler project across every night and target (mosaic panels are targets of one project): `slug`, `projectStatus` (`active` / `complete` / `paused` / `abandoned`), `notes`, `targetNames`, `frameCount`, `integrationSeconds`, `sessionCount`, `filters` (same shape as a session's), first/last frame. Relations: `sessions`, `portfolioEntries` (many-to-many with `portfolio-entry`, which sees it as `imaging_projects`). |
 
 All four have draft & publish **off**: rows are written directly by the hook
 and are readable straight away. The project row is the one place a human
@@ -114,7 +114,7 @@ are logged with the `[observing-log]` prefix.
 Projects are derived data: `api::observing-log.projects` (`services/projects.js`)
 can rebuild every project row from the sessions at any time (`rebuild()`),
 recomputing totals, creating missing rows and relinking sessions. It never
-touches `status`, `notes` or `portfolioEntries` on a row that already exists.
+touches `projectStatus`, `notes` or `portfolioEntries` on a row that already exists.
 
 On boot, if there are sessions but no project rows (the first deploy of the
 type onto existing history), the bootstrap runs the rebuild once and applies
