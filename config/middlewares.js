@@ -23,6 +23,9 @@ module.exports = ({ env }) => [
             'https://market-assets.strapi.io',
             env('AWS_ENDPOINT_URL', 'https://storage.railway.app'),
           ],
+          // Content preview (config/admin.js) loads the website in an iframe
+          // inside the admin; helmet's default-src 'self' would block it
+          'frame-src': ["'self'", env('CLIENT_URL', 'https://www.pfrastro.com')],
           upgradeInsecureRequests: null,
         },
       },
