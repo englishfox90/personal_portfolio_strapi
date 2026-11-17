@@ -7,6 +7,7 @@
  */
 
 const { createCoreController } = require('@strapi/strapi').factories;
+const { incrementCounter } = require('../../../utils/increment-counter');
 
 module.exports = createCoreController('api::post.post', ({ strapi }) => ({
   /**
@@ -21,37 +22,25 @@ module.exports = createCoreController('api::post.post', ({ strapi }) => ({
     }
 
     try {
-      // Find the post
-      const post = await strapi.documents('api::post.post').findOne({
-        documentId: id,
-      });
+      // Never publish here - see src/utils/increment-counter.js
+      const result = await incrementCounter(strapi, 'api::post.post', id, 'views', ['title']);
 
-      if (!post) {
+      if (!result) {
         return ctx.notFound('Post not found');
       }
 
-      // Increment the view count
-      const currentViews = post.views || 0;
-      const updated = await strapi.documents('api::post.post').update({
-        documentId: id,
-        data: {
-          views: currentViews + 1,
-        },
-        status: 'published', // Ensure changes are published immediately
-      });
-
-      strapi.log.debug(`View count incremented for post "${post.title}": ${currentViews} -> ${currentViews + 1}`);
+      strapi.log.debug(`View count incremented for "${result.row.title}": ${result.previous} -> ${result.value}`);
 
       return ctx.send({
         data: {
-          id: updated.id,
-          documentId: updated.documentId,
-          title: updated.title,
-          views: updated.views,
+          id: result.id,
+          documentId: result.documentId,
+          title: result.row.title,
+          views: result.value,
         },
         meta: {
-          previousCount: currentViews,
-          newCount: updated.views,
+          previousCount: result.previous,
+          newCount: result.value,
         },
       });
     } catch (error) {

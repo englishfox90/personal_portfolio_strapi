@@ -8,6 +8,7 @@
  */
 
 const { createCoreController } = require('@strapi/strapi').factories;
+const { incrementCounter } = require('../../../utils/increment-counter');
 
 module.exports = createCoreController('api::program.program', ({ strapi }) => ({
   /**
@@ -85,37 +86,25 @@ module.exports = createCoreController('api::program.program', ({ strapi }) => ({
     }
 
     try {
-      // Find the program
-      const program = await strapi.documents('api::program.program').findOne({
-        documentId: id,
-      });
+      // Never publish here - see src/utils/increment-counter.js
+      const result = await incrementCounter(strapi, 'api::program.program', id, 'downloads', ['name']);
 
-      if (!program) {
+      if (!result) {
         return ctx.notFound('Program not found');
       }
 
-      // Increment the download count
-      const currentDownloads = program.downloads || 0;
-      const updated = await strapi.documents('api::program.program').update({
-        documentId: id,
-        data: {
-          downloads: currentDownloads + 1,
-        },
-        status: 'published', // Ensure changes are published immediately
-      });
-
-      strapi.log.info(`Download count incremented for "${program.name}": ${currentDownloads} -> ${currentDownloads + 1}`);
+      strapi.log.info(`Download count incremented for "${result.row.name}": ${result.previous} -> ${result.value}`);
 
       return ctx.send({
         data: {
-          id: updated.id,
-          documentId: updated.documentId,
-          name: updated.name,
-          downloads: updated.downloads,
+          id: result.id,
+          documentId: result.documentId,
+          name: result.row.name,
+          downloads: result.value,
         },
         meta: {
-          previousCount: currentDownloads,
-          newCount: updated.downloads,
+          previousCount: result.previous,
+          newCount: result.value,
         },
       });
     } catch (error) {
