@@ -68,5 +68,23 @@ module.exports = {
     } catch (err) {
       strapi.log.error(`[observing-log] backfill not started: ${(err && err.message) || err}`);
     }
+
+    // Seestar sessions logged before target-named projects existed have no
+    // project. Attach them once (queued after the backfill above; a no-op on
+    // later boots). Only the Seestar era: older NINA sessions without a
+    // scheduler project are left as they were.
+    try {
+      const since = process.env.OBSERVING_LOG_PROJECT_CATCHUP_SINCE || '2026-10-26T00:00:00Z';
+      strapi
+        .service('api::observing-log.ingest')
+        .enqueueAttachUnlinked({ since })
+        .then((attached) => {
+          for (const a of attached) strapi.log.info(`[observing-log] project catch-up ${JSON.stringify(a)}`);
+          strapi.log.info(`[observing-log] project catch-up attached ${attached.length} session(s)`);
+        })
+        .catch((err) => strapi.log.error(`[observing-log] project catch-up failed: ${(err && err.message) || err}`));
+    } catch (err) {
+      strapi.log.error(`[observing-log] project catch-up not started: ${(err && err.message) || err}`);
+    }
   },
 };

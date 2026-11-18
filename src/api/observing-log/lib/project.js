@@ -18,7 +18,7 @@ function normaliseProjectName(name) {
 function slugify(name) {
   const slug = String(name)
     .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/['’]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -76,6 +76,61 @@ function foldSession(project, session) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Target-named projects (rigs with no scheduler, e.g. the Seestar)
+// ---------------------------------------------------------------------------
+
+/** Statuses a new session may still join; complete/abandoned projects stay closed */
+const OPEN_STATUSES = new Set(['active', 'paused']);
+
+/** "(mosaic)", "Panel 2", "mosaic" decorations that do not change the subject */
+const DECORATION = /\(\s*mosaic\s*\)|\bmosaic\b|\bpanel\s*\d+\b/gi;
+
+function compactKey(value) {
+  return String(value)
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+/**
+ * Comparable keys for a target name, so spellings of one subject match:
+ * "SH2-171" / "Sh2-171" -> sh2171; "NGC 6992 Panel 1" -> ngc6992;
+ * "California Nebula (NGC 1499)" -> californianebula + ngc1499.
+ */
+function targetKeys(targetName) {
+  if (typeof targetName !== 'string') return [];
+  const cleaned = targetName.replace(DECORATION, ' ');
+  const keys = new Set();
+  const inner = [];
+  const outer = cleaned.replace(/\(([^)]*)\)/g, (_, group) => {
+    inner.push(group);
+    return ' ';
+  });
+  for (const part of [outer, ...inner]) {
+    const key = compactKey(part);
+    if (key) keys.add(key);
+  }
+  return [...keys];
+}
+
+/** Project name for a target with no scheduler project: decorations and catalogue brackets dropped */
+function projectNameForTarget(targetName) {
+  if (typeof targetName !== 'string') return null;
+  const outer = targetName.replace(DECORATION, ' ').replace(/\([^)]*\)/g, ' ');
+  return normaliseProjectName(outer) || normaliseProjectName(targetName.replace(DECORATION, ' '));
+}
+
+/** True when the project is open and already images this target (or is named after it) */
+function projectMatchesTarget(project, targetName) {
+  if (!project || !OPEN_STATUSES.has(project.projectStatus || 'active')) return false;
+  const wanted = new Set(targetKeys(targetName));
+  if (wanted.size === 0) return false;
+  const names = [...(Array.isArray(project.targetNames) ? project.targetNames : []), project.name];
+  return names.some((n) => targetKeys(n).some((k) => wanted.has(k)));
+}
+
 const EMPTY_TOTALS = Object.freeze({
   frameCount: 0,
   integrationSeconds: 0,
@@ -86,4 +141,16 @@ const EMPTY_TOTALS = Object.freeze({
   targetNames: [],
 });
 
-module.exports = { normaliseProjectName, slugify, bumpFilters, mergeFilters, addTarget, foldSession, EMPTY_TOTALS };
+module.exports = {
+  normaliseProjectName,
+  slugify,
+  bumpFilters,
+  mergeFilters,
+  addTarget,
+  foldSession,
+  targetKeys,
+  projectNameForTarget,
+  projectMatchesTarget,
+  OPEN_STATUSES,
+  EMPTY_TOTALS,
+};

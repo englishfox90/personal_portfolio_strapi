@@ -618,7 +618,7 @@ test('custom API tokens that read sessions are granted read on projects, once', 
 // ---------------------------------------------------------------------------
 
 /** Shaped like the 14 Nov 2026 Sh2-171 snapshots from NINA Data Sync 1.2.12 */
-function seestarPayload({ index, at, startedAt = '2026-11-14T05:35:33.197Z', roof, activityLog = [] }) {
+function seestarPayload({ index, at, startedAt = '2026-11-14T05:35:33.197Z', roof, activityLog = [], target = 'Sh2-171' }) {
   return {
     metaData: { lastUpdated: at, ninaConnected: false },
     activityLog,
@@ -632,13 +632,13 @@ function seestarPayload({ index, at, startedAt = '2026-11-14T05:35:33.197Z', roo
       currentFrameIndex: index,
       byFilter: { LP: { capturedFrames: 464 + index } },
     },
-    target: { name: 'Sh2-171', ra: '00h 05m 04.6s', dec: "+67° 26' 25\"" },
+    target: { name: target, ra: '00h 05m 04.6s', dec: "+67° 26' 25\"" },
     environment: {
       observatory: roof ? { source: 'PFR Sentinel', updatedAt: at, roof: { status: roof, confidence: 0.95 } } : undefined,
     },
     preview: {
       type: 'stack',
-      stack: { frameCount: index, filter: 'LP', target: 'Sh2-171', updatedAtTime: at },
+      stack: { frameCount: index, filter: 'LP', target, updatedAtTime: at },
       single: { filename: '', capturedAt: null },
     },
   };
@@ -877,4 +877,118 @@ test('a Seestar snapshot with no usable time logs nothing and warns once', async
   assert.equal((await ingest(p)).frame, null);
   assert.equal((await ingest(p)).frame, null);
   assert.equal(strapi.logs.warn.filter((m) => /no usable run start/.test(m)).length, 1);
+});
+
+// ---------------------------------------------------------------------------
+// Target-named projects (no scheduler)
+// ---------------------------------------------------------------------------
+
+test('targetKeys matches spellings, mosaics and catalogue brackets of one subject', () => {
+  assert.deepEqual(project.targetKeys('SH2-171'), ['sh2171']);
+  assert.deepEqual(project.targetKeys('Sh2-171'), ['sh2171']);
+  assert.deepEqual(project.targetKeys('M 31 (mosaic)'), ['m31']);
+  assert.deepEqual(project.targetKeys('NGC 6992 Panel 1'), ['ngc6992']);
+  assert.deepEqual(project.targetKeys('California Nebula (NGC 1499)'), ['californianebula', 'ngc1499']);
+  assert.deepEqual(project.targetKeys(''), []);
+  assert.equal(project.projectNameForTarget('NGC 1499 (mosaic)'), 'NGC 1499');
+  assert.equal(project.projectNameForTarget('Eastern Veil (NGC 6992)'), 'Eastern Veil');
+  assert.equal(project.projectNameForTarget('Sh2-171'), 'Sh2-171');
+});
+
+test('a Seestar session with no project name gets a project named after its target', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  await ingest(seestarPayload({ index: 3, at: '2026-11-14T05:37:03Z' }));
+  await ingest(seestarPayload({ index: 5, at: '2026-11-14T05:38:03Z' }));
+
+  const projects = strapi.store.get(UID.project);
+  assert.equal(projects.length, 1);
+  assert.equal(projects[0].name, 'Sh2-171');
+  assert.equal(projects[0].slug, 'sh2-171');
+  assert.equal(projects[0].projectStatus, 'active');
+  assert.equal(projects[0].frameCount, 5);
+  assert.equal(projects[0].integrationSeconds, 150);
+  assert.equal(projects[0].sessionCount, 1);
+  const session = strapi.store.get(UID.session)[0];
+  assert.equal(session.project, projects[0].documentId);
+  assert.equal(session.projectName, 'Sh2-171', 'so a forced rebuild keeps the grouping');
+});
+
+test('another spelling of the target joins the same project, on another night', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+
+  await ingest(seestarPayload({ index: 2, at: '2026-11-14T05:37:03Z' }));
+  await ingest(
+    seestarPayload({ index: 2, at: '2026-11-16T05:37:03Z', startedAt: '2026-11-16T05:35:00Z', target: 'SH2-171' })
+  );
+
+  const projects = strapi.store.get(UID.project);
+  assert.equal(projects.length, 1);
+  assert.equal(projects[0].sessionCount, 2);
+  assert.equal(projects[0].frameCount, 4);
+  assert.deepEqual(projects[0].targetNames, ['Sh2-171', 'SH2-171']);
+});
+
+test('a target already in an open scheduler project joins it; a finished one is not reopened', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+  await strapi.documents(UID.project).create({
+    data: { name: 'Andromeda Galaxy', slug: 'andromeda-galaxy', projectStatus: 'active', ...project.EMPTY_TOTALS, targetNames: ['M 31'] },
+  });
+  await strapi.documents(UID.project).create({
+    data: { name: 'M 42', slug: 'm-42', projectStatus: 'complete', ...project.EMPTY_TOTALS, targetNames: ['M 42'] },
+  });
+
+  await ingest(seestarPayload({ index: 2, at: '2026-11-14T05:37:03Z', target: 'M 31 (mosaic)' }));
+  await ingest(
+    seestarPayload({ index: 2, at: '2026-11-15T05:37:03Z', startedAt: '2026-11-15T05:35:00Z', target: 'M 42' })
+  );
+
+  const rows = strapi.store.get(UID.project);
+  const andromeda = rows.find((p) => p.name === 'Andromeda Galaxy');
+  assert.equal(andromeda.frameCount, 2);
+  assert.deepEqual(andromeda.targetNames, ['M 31', 'M 31 (mosaic)']);
+  const orion = rows.find((p) => p.name === 'M 42 (2)');
+  assert.ok(orion, 'a new project, since the plain name is taken by the finished one');
+  assert.equal(orion.projectStatus, 'active');
+  assert.equal(rows.find((p) => p.name === 'M 42').frameCount, 0, 'the finished project is untouched');
+});
+
+test('a scheduler project named for another target still waits for the matching push', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, UID } = makeIngest({ strapi });
+  await ingest(
+    pushPayload({ seq: 51, capturedAt: '2026-09-29T03:39:33Z', currentTarget: 'NGC 6992 Panel 1', project: 'Eastern Veil Nebula' })
+  );
+  assert.equal((strapi.store.get(UID.project) || []).length, 0);
+});
+
+test('catch-up attaches unlinked sessions since the cutoff, once', async () => {
+  const strapi = makeFakeStrapi();
+  const { ingest, attachUnlinkedSessions, UID } = makeIngest({ strapi });
+
+  await ingest(seestarPayload({ index: 2, at: '2026-11-14T05:37:03Z' }));
+  await ingest(
+    seestarPayload({ index: 3, at: '2026-11-15T05:37:03Z', startedAt: '2026-11-15T05:35:00Z', target: 'NGC 6960' })
+  );
+  // Simulate the history logged before this change: no projects, no names
+  strapi.store.set(UID.project, []);
+  for (const s of strapi.store.get(UID.session)) {
+    delete s.project;
+    s.projectName = null;
+  }
+  // An older session before the cutoff stays as it is
+  strapi.store.get(UID.session)[0].firstFrameAt = '2026-10-01T05:00:00.000Z';
+
+  const attached = await attachUnlinkedSessions({ since: '2026-10-26T00:00:00Z' });
+  assert.deepEqual(attached.map((a) => a.project), ['NGC 6960']);
+  const rows = strapi.store.get(UID.project);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].frameCount, 3);
+  assert.equal(rows[0].sessionCount, 1);
+
+  assert.deepEqual(await attachUnlinkedSessions({ since: '2026-10-26T00:00:00Z' }), [], 'idempotent');
+  assert.equal(rows[0].sessionCount, 1);
 });
