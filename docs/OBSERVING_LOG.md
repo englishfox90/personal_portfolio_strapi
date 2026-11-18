@@ -82,6 +82,18 @@ The ingest:
    one frame; a session not yet linked (its first frame, or the name only
    arrived on a later matching push) is attached and its whole totals folded
    in, so nothing counted before the link is lost.
+
+   **No scheduler (Seestar).** When the payload names no project at all, the
+   session joins the open (`active`/`paused`) project that already images the
+   target, else a new `active` project named after it. Target spellings match
+   loosely (`SH2-171` = `Sh2-171`, `M 31 (mosaic)` = `M 31`, `NGC 6992 Panel 1` =
+   `NGC 6992`, `California Nebula (NGC 1499)` = `NGC 1499`), so Seestar M 31
+   joins Andromeda Galaxy. A `complete`/`abandoned` project is never reopened;
+   the new one gets a ` (2)` suffix if its plain name is taken. The session's
+   `projectName` is set to the project's name so a rebuild keeps the grouping.
+   Rename or merge these in the admin as needed. On boot, sessions since
+   `OBSERVING_LOG_PROJECT_CATCHUP_SINCE` (default 2026-10-26) that have no
+   project are attached the same way, once.
 4. **Weather** — if `environment.weather` is connected, append a sample at most
    once every `OBSERVING_LOG_WEATHER_SAMPLE_MINUTES` and fold it into
    `weatherSummary`. The reading's own timestamp decides which night it belongs

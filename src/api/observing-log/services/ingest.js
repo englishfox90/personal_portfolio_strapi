@@ -40,7 +40,16 @@ const {
   latest,
   sessionKey,
 } = require('../lib/night');
-const { normaliseProjectName, slugify, bumpFilters, addTarget, foldSession, EMPTY_TOTALS } = require('../lib/project');
+const {
+  normaliseProjectName,
+  slugify,
+  bumpFilters,
+  addTarget,
+  foldSession,
+  projectNameForTarget,
+  projectMatchesTarget,
+  EMPTY_TOTALS,
+} = require('../lib/project');
 
 const UID = {
   currentlyImaging: 'api::currently-imaging.currently-imaging',
@@ -406,17 +415,100 @@ module.exports = ({ strapi }) => {
     }
 
     const name = normaliseProjectName(session.projectName || context.projectName);
-    if (!name) return null;
-    const project = await findOrCreateProject(name);
+    if (name) {
+      const project = await findOrCreateProject(name);
+      return attachSession(session, project, {});
+    }
+
+    // The scheduler named a project for another target: wait for a matching push
+    if (context.scheduled) return null;
+
+    // No scheduler project (the Seestar never sends one): group by target
+    const project = await findOrCreateProjectForTarget(targetName || session.targetName);
+    if (!project) return null;
+    return attachSession(session, project, { projectName: project.name });
+  }
+
+  /** Link a session to a project and fold its whole totals in */
+  async function attachSession(session, project, sessionData) {
     await strapi.documents(UID.project).update({
       documentId: project.documentId,
       data: foldSession(project, session),
     });
     await strapi.documents(UID.session).update({
       documentId: session.documentId,
-      data: { project: project.documentId },
+      data: { ...sessionData, project: project.documentId },
     });
-    return { attached: true, documentId: project.documentId };
+    return { attached: true, documentId: project.documentId, name: project.name };
+  }
+
+  /**
+   * The open (active/paused) project that already images this target, else a
+   * new active project named after it. Spellings and mosaic decorations of
+   * one subject match (see `targetKeys`), so "SH2-171" and "Sh2-171" share a
+   * project and Seestar M 31 joins the existing Andromeda project. A finished
+   * project is never reopened: imaging its target again starts a new one.
+   */
+  async function findOrCreateProjectForTarget(targetName) {
+    const projectName = projectNameForTarget(targetName);
+    if (!projectName) return null;
+
+    const all = await strapi.documents(UID.project).findMany({ limit: 1000 });
+    const open = all
+      .filter((p) => projectMatchesTarget(p, targetName))
+      .sort((a, b) => String(b.lastFrameAt || '').localeCompare(String(a.lastFrameAt || '')));
+    if (open.length > 0) return open[0];
+
+    // The name is unique: a closed project may already hold the plain one
+    let name = projectName;
+    for (let n = 2; all.some((p) => p.name === name); n++) name = `${projectName} (${n})`;
+    log.info(`[observing-log] new project "${name}" for target "${targetName}"`);
+    return findOrCreateProject(name);
+  }
+
+  /**
+   * One-off catch-up: sessions since `since` with neither a project nor a
+   * project name (Seestar nights before target-named projects existed) are
+   * attached as if their frames had just arrived. Idempotent: a linked
+   * session is skipped, so later boots do nothing.
+   */
+  async function attachUnlinkedSessions({ since } = {}) {
+    const sessions = [];
+    for (let page = 0; page < 200; page++) {
+      const rows = await strapi.documents(UID.session).findMany({
+        populate: ['project'],
+        sort: 'firstFrameAt:asc',
+        start: page * 100,
+        limit: 100,
+      });
+      sessions.push(...rows);
+      if (rows.length < 100) break;
+    }
+    const sinceMs = since ? new Date(since).getTime() : -Infinity;
+    const pending = sessions
+      .filter((s) => !relationDocumentId(s.project) && !normaliseProjectName(s.projectName))
+      .filter((s) => typeof s.targetName === 'string' && s.targetName.trim())
+      .filter((s) => (toNumber(s.frameCount) || 0) > 0)
+      .filter((s) => s.firstFrameAt && new Date(s.firstFrameAt).getTime() >= sinceMs)
+      .sort((a, b) => String(a.firstFrameAt).localeCompare(String(b.firstFrameAt)));
+
+    const attached = [];
+    for (const s of pending) {
+      const project = await findOrCreateProjectForTarget(s.targetName);
+      if (!project) continue;
+      await attachSession(s, project, { projectName: project.name });
+      attached.push({ night: s.nightDate, target: s.targetName, project: project.name });
+    }
+    return attached;
+  }
+
+  /** Runs the catch-up on the ingest queue so it never races live pushes */
+  function enqueueAttachUnlinked(options) {
+    const done = queue.then(() => attachUnlinkedSessions(options));
+    queue = done.catch((err) => {
+      log.error(`[observing-log] project catch-up failed: ${(err && err.message) || err}`);
+    });
+    return done;
   }
 
   async function findOrCreateProject(name) {
@@ -614,13 +706,17 @@ module.exports = ({ strapi }) => {
   function targetContext(payload, targetName) {
     const target = payload.target || {};
     const project = payload.project || {};
+    // A scheduler is in use whenever the payload names any project; only
+    // pushes from a rig with none (the Seestar) fall back to target-named projects
+    const scheduled = Boolean(firstString(project.name));
     if (!sameTarget(target.name, targetName)) {
-      return { ra: null, dec: null, projectName: null };
+      return { ra: null, dec: null, projectName: null, scheduled };
     }
     return {
       ra: firstString(target.ra),
       dec: firstString(target.dec),
       projectName: firstString(project.name),
+      scheduled,
     };
   }
 
@@ -751,5 +847,17 @@ module.exports = ({ strapi }) => {
     return done;
   }
 
-  return { enqueue, ingest, backfillRuns, enqueueBackfill, findOrCreateProject, UID, WEATHER_METRICS, FRAME_STATS };
+  return {
+    enqueue,
+    ingest,
+    backfillRuns,
+    enqueueBackfill,
+    findOrCreateProject,
+    findOrCreateProjectForTarget,
+    attachUnlinkedSessions,
+    enqueueAttachUnlinked,
+    UID,
+    WEATHER_METRICS,
+    FRAME_STATS,
+  };
 };
