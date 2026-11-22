@@ -46,6 +46,10 @@
     "integrationHours": {
       "type": "integer"
     },
+    "displateUrl": {
+      "type": "string",
+      "regex": "^https://\\S+$"
+    },
     "views": {
       "type": "integer"
     },

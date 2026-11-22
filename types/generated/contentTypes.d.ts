@@ -728,6 +728,7 @@ export interface ApiPortfolioEntryPortfolioEntry
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     description: Schema.Attribute.Blocks;
+    displateUrl: Schema.Attribute.String;
     galleryImages: Schema.Attribute.Media<
       'images' | 'files' | 'videos' | 'audios',
       true
