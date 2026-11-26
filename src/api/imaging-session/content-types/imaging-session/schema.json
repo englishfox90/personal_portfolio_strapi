@@ -66,10 +66,11 @@
       "target": "api::imaging-frame.imaging-frame",
       "mappedBy": "session"
     },
-    "portfolioEntry": {
+    "project": {
       "type": "relation",
-      "relation": "oneToOne",
-      "target": "api::portfolio-entry.portfolio-entry"
+      "relation": "manyToOne",
+      "target": "api::imaging-project.imaging-project",
+      "inversedBy": "sessions"
     }
   }
 }

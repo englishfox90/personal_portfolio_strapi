@@ -47,6 +47,12 @@
     "lastWeatherAt": {
       "type": "datetime"
     },
+    "roofEvents": {
+      "type": "json"
+    },
+    "lastRoofSafe": {
+      "type": "boolean"
+    },
     "notes": {
       "type": "text"
     },

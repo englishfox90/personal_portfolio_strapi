@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_nina_data_sync_observatory_roof_objects",
+  "info": {
+    "displayName": "Observatory Roof Object"
+  },
+  "options": {},
+  "attributes": {
+    "status": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "decimal"
+    }
+  },
+  "config": {}
+}

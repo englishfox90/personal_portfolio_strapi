@@ -13,6 +13,9 @@
     },
     "dec": {
       "type": "string"
+    },
+    "altitudeDeg": {
+      "type": "decimal"
     }
   },
   "config": {}

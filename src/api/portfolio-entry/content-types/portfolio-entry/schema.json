@@ -46,6 +46,10 @@
     "integrationHours": {
       "type": "integer"
     },
+    "displateUrl": {
+      "type": "string",
+      "regex": "^https://\\S+$"
+    },
     "views": {
       "type": "integer"
     },
@@ -69,6 +73,12 @@
     "slug": {
       "type": "uid",
       "targetField": "title"
+    },
+    "imaging_projects": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::imaging-project.imaging-project",
+      "mappedBy": "portfolioEntries"
     }
   }
 }

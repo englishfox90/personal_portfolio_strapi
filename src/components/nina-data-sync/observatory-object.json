@@ -1,0 +1,41 @@
+{
+  "collectionName": "components_nina_data_sync_observatory_objects",
+  "info": {
+    "displayName": "Observatory Object"
+  },
+  "options": {},
+  "attributes": {
+    "source": {
+      "type": "string"
+    },
+    "updatedAt": {
+      "type": "datetime"
+    },
+    "roof": {
+      "type": "component",
+      "component": "nina-data-sync.observatory-roof-object",
+      "repeatable": false
+    },
+    "sky": {
+      "type": "component",
+      "component": "nina-data-sync.observatory-sky-object",
+      "repeatable": false
+    },
+    "weatherSummary": {
+      "type": "string"
+    },
+    "observingWindow": {
+      "type": "boolean"
+    },
+    "observingWindowReason": {
+      "type": "string"
+    },
+    "imageAgeSeconds": {
+      "type": "decimal"
+    },
+    "stale": {
+      "type": "boolean"
+    }
+  },
+  "config": {}
+}

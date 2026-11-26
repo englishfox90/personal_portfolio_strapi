@@ -22,6 +22,15 @@
     },
     "timestamp": {
       "type": "datetime"
+    },
+    "totalIntegrationSeconds": {
+      "type": "integer"
+    },
+    "currentFrameIndex": {
+      "type": "integer"
+    },
+    "byFilter": {
+      "type": "json"
     }
   },
   "config": {}

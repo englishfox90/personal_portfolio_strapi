@@ -9,6 +9,11 @@
       "type": "component",
       "component": "nina-data-sync.weather-object",
       "repeatable": false
+    },
+    "observatory": {
+      "type": "component",
+      "component": "nina-data-sync.observatory-object",
+      "repeatable": false
     }
   },
   "config": {}
