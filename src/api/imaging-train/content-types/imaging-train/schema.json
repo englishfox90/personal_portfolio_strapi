@@ -26,6 +26,22 @@
         "images",
         "files"
       ]
+    },
+    "focalLength": {
+      "type": "decimal",
+      "min": 1
+    },
+    "sensorWidth": {
+      "type": "decimal",
+      "min": 0.1
+    },
+    "sensorHeight": {
+      "type": "decimal",
+      "min": 0.1
+    },
+    "sensorPixelWidth": {
+      "type": "integer",
+      "min": 1
     }
   }
 }
